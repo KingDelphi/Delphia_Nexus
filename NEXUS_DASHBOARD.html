@@ -1,0 +1,1398 @@
+
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <title>DELPHIA NEXUS v7.5 - CERTIFICATE RECOVERY</title>
+        <style>
+            :root { --gold: #c5a059; --dark: #0a0a0a; --accent: #00ff88; --card-bg: #121212; --danger: #ff4444; --blue: #00d4ff; --yield: #d4fb79; --root: #d400ff; }
+            body { background:#050505; color:white; font-family:'Segoe UI',sans-serif; margin:0; padding:20px; }
+            .header { text-align:center; padding-bottom:20px; margin-bottom:20px; border-bottom: 1px solid #222; }
+            .stats { display:flex; justify-content:center; gap:20px; margin:20px 0; flex-wrap: wrap; }
+            .stat-box { background:#111; padding:15px; border:1px solid #333; border-radius:8px; text-align:center; min-width:220px; }
+            .stat-val { font-size:24px; color:var(--gold); font-weight:bold; font-family:monospace; }
+            
+            .wallet-panel { display:none; background:linear-gradient(145deg, #1a1a1a, #0a0a0a); border:1px solid var(--gold); border-radius:12px; padding:25px; margin-bottom:30px; text-align:center; box-shadow: 0 0 30px rgba(197,160,89,0.15); animation: fadeIn 0.5s ease; }
+            .wallet-name { color:var(--gold); margin-top:0; font-size:24px; letter-spacing:4px; text-transform:uppercase; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+            .wallet-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px; margin-bottom:20px; justify-content: center; }
+            .wallet-item { background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; border: 1px solid #222; }
+            .wallet-label { font-size:9px; color:#888; letter-spacing:1px; margin-bottom:8px; font-weight:bold; text-transform:uppercase; }
+            .wallet-value { font-size:18px; color:#fff; font-family:monospace; font-weight:bold; }
+            
+            .market-section { background: rgba(0, 212, 255, 0.05); border: 1px solid var(--blue); border-radius: 12px; padding: 20px; margin-bottom: 30px; display:none; animation: fadeIn 0.5s ease; }
+            .market-title { color: var(--blue); text-transform: uppercase; letter-spacing: 4px; font-size: 14px; margin-bottom: 20px; font-weight: bold; border-bottom: 1px solid rgba(0,212,255,0.2); padding-bottom: 10px; }
+            .market-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+            .market-item { background: #000; border: 1px solid #222; padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 15px; }
+            .market-item img { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; }
+
+            .controls { display:flex; justify-content:center; gap:15px; margin-bottom:40px; background:#111; padding:20px; border-radius:12px; border:1px solid #333; }
+            input, select { background:#000; color:white; border:1px solid #444; padding:12px; border-radius:6px; outline:none; }
+            
+            .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:25px; }
+            .card { background:var(--card-bg); border:1px solid #222; border-radius:12px; padding:15px; display:flex; flex-direction:column; position:relative; min-height: 550px; transition: 0.3s; }
+            .card:hover { border-color: #444; }
+            .card.selected { border-color: var(--accent); box-shadow: 0 0 15px rgba(0,255,136,0.2); }
+            
+            .yield-badge { position:absolute; top:-10px; right:15px; background: #000; border: 1px solid var(--yield); color: var(--yield); padding: 2px 10px; border-radius: 4px; font-size: 10px; font-weight: bold; z-index: 11; }
+            .sale-tag { position:absolute; top:-10px; left:15px; background:var(--blue); color:black; padding:2px 10px; border-radius:4px; font-size:10px; font-weight:bold; z-index:11; }
+            .colateral-check { position:absolute; top:20px; right:15px; transform:scale(1.5); z-index:10; cursor:pointer; accent-color: var(--accent); display:none; }
+
+            .media-container { width:100%; height:220px; background:#000; border-radius:8px; overflow:hidden; display:flex; align-items:center; justify-content:center; margin-bottom:12px; border:1px solid #222; position:relative; }
+            .media-container img { width:100%; height:100%; object-fit:cover; }
+            .media-container audio { width:90%; filter: invert(100%) hue-rotate(180deg); }
+            .media-container iframe { width:100%; height:100%; border:none; }
+            
+            .card-title { font-size:16px; font-weight:bold; color:#fff; margin-bottom: 2px; min-height:40px; display:flex; align-items:center; line-height:1.2; }
+            .price { color:var(--accent); font-size:18px; font-weight:bold; font-family:monospace; display:inline-block; margin-right: 10px; }
+            .root-val { color: var(--root); font-size: 11px; font-family: monospace; letter-spacing: 1px; display:inline-block; text-shadow: 0 0 8px rgba(212,0,255,0.4); }
+            
+            .cap-table { background:rgba(0,0,0,0.4); padding:10px; border-radius:6px; border-left:3px solid var(--gold); margin:10px 0; font-size:11px; flex-grow: 1; }
+            .cap-row { display:flex; justify-content:space-between; margin-bottom:3px; }
+            .btn-action { background:transparent; border:1px solid var(--gold); color:var(--gold); padding:10px; text-align:center; border-radius:4px; text-decoration:none; font-size:11px; font-weight:bold; margin-top: 5px; cursor:pointer; transition:0.2s; }
+            .btn-cert { display: block; width: 100%; box-sizing: border-box; }
+            .btn-action:hover { background:var(--gold); color:black; }
+            .sell-panel { background:rgba(0, 212, 255, 0.1); border:1px solid var(--blue); padding:10px; border-radius:6px; margin-top:10px; display:none; }
+            
+            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1 style="letter-spacing:15px; color:var(--gold); margin-bottom:5px;">D E L P H I A</h1>
+            <div style="font-size:11px; color:#666; letter-spacing:4px; margin-bottom:20px;">SISTEMA BURSÁTIL Y LEDGER INMUTABLE</div>
+            <div class="stats">
+                <div class="stat-box"><div>VALOR TOTAL REINO</div><div class="stat-val">$89,550.00</div></div>
+                <div class="stat-box"><div>YIELD GLOBAL MENSUAL</div><div class="stat-val" style="color:var(--yield);">183.92 DPX</div></div>
+                <div class="stat-box" style="border:1px solid var(--accent);"><div id="wealthLabel">RIQUEZA FILTRADA</div><div class="stat-val" id="wealthVal">$0.00</div></div>
+            </div>
+        </div>
+
+        <div id="walletPanel" class="wallet-panel">
+            <h2 id="walletName" class="wallet-name">-</h2>
+            <div class="wallet-grid">
+                <div class="wallet-item">
+                    <div class="wallet-label">SALDO BANCARIO</div>
+                    <div id="walletSaldo" class="wallet-value text-accent">0.00 DPX</div>
+                </div>
+                <div class="wallet-item">
+                    <div class="wallet-label">VALOR EN ACTIVOS</div>
+                    <div id="walletWealth" class="wallet-value text-gold">$0.00</div>
+                </div>
+                <div class="wallet-item" style="border: 1px solid var(--accent); background: rgba(0, 255, 136, 0.05);" id="itemPoder">
+                    <div class="wallet-label" id="walletPoderLabel" style="color:var(--accent);">NET WORTH (PODER)</div>
+                    <div id="walletPoder" class="wallet-value" style="color:var(--accent); font-size:22px;">$0.00</div>
+                </div>
+                <div class="wallet-item" id="itemYield">
+                    <div class="wallet-label">RENTA PASIVA PROPIA</div>
+                    <div id="walletYield" class="wallet-value" style="color:var(--yield);">0.00 DPX / mes</div>
+                </div>
+                <div class="wallet-item" id="itemLTV">
+                    <div class="wallet-label">CAPACIDAD CREDITICIA</div>
+                    <div id="walletLTV" class="wallet-value">0.00 DPX</div>
+                </div>
+            </div>
+            
+            <div id="creditConsole" style="border-top: 1px dashed #444; padding-top: 15px;">
+                <div class="wallet-label" style="color:var(--gold); margin-bottom:10px;">🏦 GESTIÓN DE COLATERAL</div>
+                <div class="wallet-value" style="font-size:14px; margin-bottom:15px;">SELECCIONADO: <span id="creditTotal" style="color:var(--accent)">0.00</span> DPX</div>
+                <button id="btnRequestCredit" class="btn-action" style="padding:10px 30px; margin: 0 auto; display: block;" disabled onclick="generarOrden()">SOLICITAR CRÉDITO</button>
+            </div>
+        </div>
+
+        <div id="marketSection" class="market-section">
+            <div class="market-title">🏛️ DELPHIA ASSET EXCHANGE</div>
+            <div id="marketGrid" class="market-grid"></div>
+        </div>
+
+        <div class="controls">
+            <input type="text" id="search" placeholder="🔍 Buscar activo..." oninput="update()">
+            <select id="sortOrder" onchange="update()">
+                <option value="name_asc">🔤 Nombre</option>
+                <option value="price_desc">💰 Mayor Valor</option>
+                <option value="price_asc">📉 Menor Valor</option>
+            </select>
+            <select id="sobFilter" onchange="update()">
+                <option value="ALL">🏛️ Ver Todo el Reino</option>
+                <option value="Boveda_Arquitecto">Boveda_Arquitecto</option><option value="Boveda_Delphi">Boveda_Delphi</option><option value="Boveda_Matriarca">Boveda_Matriarca</option><option value="SOCIO_DENISE_RICK_CATARIO_07">SOCIO_DENISE_RICK_CATARIO_07</option><option value="SOCIO_EDUARDO_ROJO_03">SOCIO_EDUARDO_ROJO_03</option><option value="SOCIO_FEDE_BARRERA_01">SOCIO_FEDE_BARRERA_01</option><option value="SOCIO_MAURICIO_BARRERA_08">SOCIO_MAURICIO_BARRERA_08</option><option value="SOCIO_RAFA_RAPTHOR_04">SOCIO_RAFA_RAPTHOR_04</option><option value="SOCIO_RICK_CATARIO_02">SOCIO_RICK_CATARIO_02</option><option value="SOCIO_ROBERTO_RIOS_05">SOCIO_ROBERTO_RIOS_05</option><option value="SOCIO_ROB_CATARIO_06">SOCIO_ROB_CATARIO_06</option><option value="SOCIO_SERGIO_CHAVEZ_09">SOCIO_SERGIO_CHAVEZ_09</option>
+            </select>
+        </div>
+
+        <div class="grid" id="mainGrid">
+    
+            <div class="card" id="card-BA7B9E7C" data-name="la vida en rosa 2" data-price="2250.0" data-shares="1" data-yield="5.0" data-cap='{"Boveda_Matriarca": 1}' data-id="BA7B9E7C" data-rawname="La vida en rosa 2">
+                <div id="tag-BA7B9E7C" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 5.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-BA7B9E7C" onchange="toggleSelect('BA7B9E7C')" data-val="1125.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/La vida en rosa 2.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Óleo sobre tela</span>
+                    <div class="card-title">La vida en rosa 2 </div>
+                    <div>
+                        <span class="price">$2,250.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-BA7B9E7C" class="btn-action btn-cert" onclick="desplegarCertificado('BA7B9E7C')">CARGANDO...</button>
+                
+                <div id="sell-ui-BA7B9E7C" class="sell-panel">
+                    <input type="number" id="price-in-BA7B9E7C" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('BA7B9E7C')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-914B2FE5" data-name="inventario_obra_mar.pdf" data-price="0.0" data-shares="1" data-yield="0.0" data-cap='{"Boveda_Matriarca": 1}' data-id="914B2FE5" data-rawname="INVENTARIO_OBRA_MAR.pdf">
+                <div id="tag-914B2FE5" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                
+                <input type="checkbox" class="colateral-check" id="check-914B2FE5" onchange="toggleSelect('914B2FE5')" data-val="0.0" >
+                
+                <div class="media-container"><iframe src="Boveda_Activos/Boveda_Matriarca/INVENTARIO_OBRA_MAR.pdf#toolbar=0"></iframe></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">General</span>
+                    <div class="card-title">INVENTARIO_OBRA_MAR.pdf </div>
+                    <div>
+                        <span class="price">$0.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-914B2FE5" class="btn-action btn-cert" onclick="desplegarCertificado('914B2FE5')">CARGANDO...</button>
+                
+                <div id="sell-ui-914B2FE5" class="sell-panel">
+                    <input type="number" id="price-in-914B2FE5" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('914B2FE5')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-85B547DB" data-name="la magia en la que estoy presa" data-price="1250.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Matriarca": 1}' data-id="85B547DB" data-rawname="La magia en la que estoy presa">
+                <div id="tag-85B547DB" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-85B547DB" onchange="toggleSelect('85B547DB')" data-val="625.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/La magia en la que estoy presa.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Óleo sobre tela</span>
+                    <div class="card-title">La magia en la que estoy presa </div>
+                    <div>
+                        <span class="price">$1,250.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-85B547DB" class="btn-action btn-cert" onclick="desplegarCertificado('85B547DB')">CARGANDO...</button>
+                
+                <div id="sell-ui-85B547DB" class="sell-panel">
+                    <input type="number" id="price-in-85B547DB" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('85B547DB')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-D4ABDAB6" data-name="_...que como, cuando y donde?" data-price="1300.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Matriarca": 1}' data-id="D4ABDAB6" data-rawname="_...que como, cuando y donde?">
+                <div id="tag-D4ABDAB6" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-D4ABDAB6" onchange="toggleSelect('D4ABDAB6')" data-val="650.0" disabled>
+                
+                <div class="media-container"><div style="color:#444; font-size:11px;">[ Sin Preview ]</div></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Óleo sobre tela</span>
+                    <div class="card-title">_...que como, cuando y donde? 🔒</div>
+                    <div>
+                        <span class="price">$1,300.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-D4ABDAB6" class="btn-action btn-cert" onclick="desplegarCertificado('D4ABDAB6')">CARGANDO...</button>
+                
+                <div id="sell-ui-D4ABDAB6" class="sell-panel">
+                    <input type="number" id="price-in-D4ABDAB6" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('D4ABDAB6')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-2324F906" data-name="autorretrato 100x130" data-price="2250.0" data-shares="1" data-yield="5.0" data-cap='{"Boveda_Matriarca": 1}' data-id="2324F906" data-rawname="Autorretrato 100x130">
+                <div id="tag-2324F906" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 5.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-2324F906" onchange="toggleSelect('2324F906')" data-val="1125.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/Autorretrato 100x130.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Acrílico sobre tela</span>
+                    <div class="card-title">Autorretrato 100x130 </div>
+                    <div>
+                        <span class="price">$2,250.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-2324F906" class="btn-action btn-cert" onclick="desplegarCertificado('2324F906')">CARGANDO...</button>
+                
+                <div id="sell-ui-2324F906" class="sell-panel">
+                    <input type="number" id="price-in-2324F906" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('2324F906')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-DEE9DAA6" data-name="el azar se parece al deseo" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Matriarca": 1}' data-id="DEE9DAA6" data-rawname="El azar se parece al deseo">
+                <div id="tag-DEE9DAA6" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-DEE9DAA6" onchange="toggleSelect('DEE9DAA6')" data-val="750.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/El azar se parece al deseo.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Óleo sobre tela</span>
+                    <div class="card-title">El azar se parece al deseo </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-DEE9DAA6" class="btn-action btn-cert" onclick="desplegarCertificado('DEE9DAA6')">CARGANDO...</button>
+                
+                <div id="sell-ui-DEE9DAA6" class="sell-panel">
+                    <input type="number" id="price-in-DEE9DAA6" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('DEE9DAA6')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-3C66BC14" data-name="roberta" data-price="2250.0" data-shares="1" data-yield="5.0" data-cap='{"Boveda_Matriarca": 1}' data-id="3C66BC14" data-rawname="Roberta">
+                <div id="tag-3C66BC14" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 5.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-3C66BC14" onchange="toggleSelect('3C66BC14')" data-val="1125.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/Roberta.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Acrílico sobre tela</span>
+                    <div class="card-title">Roberta </div>
+                    <div>
+                        <span class="price">$2,250.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-3C66BC14" class="btn-action btn-cert" onclick="desplegarCertificado('3C66BC14')">CARGANDO...</button>
+                
+                <div id="sell-ui-3C66BC14" class="sell-panel">
+                    <input type="number" id="price-in-3C66BC14" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('3C66BC14')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-3BB842F7" data-name="ni contigo, ni sin ti" data-price="1300.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Matriarca": 1}' data-id="3BB842F7" data-rawname="Ni contigo, ni sin ti">
+                <div id="tag-3BB842F7" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-3BB842F7" onchange="toggleSelect('3BB842F7')" data-val="650.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/Ni contigo, ni sin ti.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Óleo sobre tela</span>
+                    <div class="card-title">Ni contigo, ni sin ti </div>
+                    <div>
+                        <span class="price">$1,300.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-3BB842F7" class="btn-action btn-cert" onclick="desplegarCertificado('3BB842F7')">CARGANDO...</button>
+                
+                <div id="sell-ui-3BB842F7" class="sell-panel">
+                    <input type="number" id="price-in-3BB842F7" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('3BB842F7')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-F7A069F3" data-name="naranja dulce" data-price="1150.0" data-shares="1" data-yield="2.0" data-cap='{"Boveda_Matriarca": 1}' data-id="F7A069F3" data-rawname="Naranja Dulce">
+                <div id="tag-F7A069F3" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 2.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-F7A069F3" onchange="toggleSelect('F7A069F3')" data-val="575.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/Naranja Dulce.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Acrílico sobre tela</span>
+                    <div class="card-title">Naranja Dulce </div>
+                    <div>
+                        <span class="price">$1,150.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-F7A069F3" class="btn-action btn-cert" onclick="desplegarCertificado('F7A069F3')">CARGANDO...</button>
+                
+                <div id="sell-ui-F7A069F3" class="sell-panel">
+                    <input type="number" id="price-in-F7A069F3" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('F7A069F3')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-A012F945" data-name="siempre unidos" data-price="1800.0" data-shares="1" data-yield="4.0" data-cap='{"Boveda_Matriarca": 1}' data-id="A012F945" data-rawname="Siempre unidos">
+                <div id="tag-A012F945" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 4.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-A012F945" onchange="toggleSelect('A012F945')" data-val="900.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/Siempre unidos.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Óleo sobre tela</span>
+                    <div class="card-title">Siempre unidos </div>
+                    <div>
+                        <span class="price">$1,800.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-A012F945" class="btn-action btn-cert" onclick="desplegarCertificado('A012F945')">CARGANDO...</button>
+                
+                <div id="sell-ui-A012F945" class="sell-panel">
+                    <input type="number" id="price-in-A012F945" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('A012F945')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-DEF384E9" data-name="tía lupita.jpeg" data-price="1250.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Matriarca": 1}' data-id="DEF384E9" data-rawname="Tía Lupita.jpeg">
+                <div id="tag-DEF384E9" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-DEF384E9" onchange="toggleSelect('DEF384E9')" data-val="625.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/Tía Lupita.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">General</span>
+                    <div class="card-title">Tía Lupita.jpeg </div>
+                    <div>
+                        <span class="price">$1,250.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-DEF384E9" class="btn-action btn-cert" onclick="desplegarCertificado('DEF384E9')">CARGANDO...</button>
+                
+                <div id="sell-ui-DEF384E9" class="sell-panel">
+                    <input type="number" id="price-in-DEF384E9" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('DEF384E9')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-D8A3D82C" data-name="aqui estoy" data-price="2250.0" data-shares="1" data-yield="5.0" data-cap='{"Boveda_Matriarca": 1}' data-id="D8A3D82C" data-rawname="Aqui estoy">
+                <div id="tag-D8A3D82C" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 5.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-D8A3D82C" onchange="toggleSelect('D8A3D82C')" data-val="1125.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/Aqui estoy.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Acrílico sobre tela</span>
+                    <div class="card-title">Aqui estoy </div>
+                    <div>
+                        <span class="price">$2,250.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-D8A3D82C" class="btn-action btn-cert" onclick="desplegarCertificado('D8A3D82C')">CARGANDO...</button>
+                
+                <div id="sell-ui-D8A3D82C" class="sell-panel">
+                    <input type="number" id="price-in-D8A3D82C" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('D8A3D82C')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-53A0D01B" data-name="autorretrato 130x100" data-price="2050.0" data-shares="1" data-yield="4.0" data-cap='{"Boveda_Matriarca": 1}' data-id="53A0D01B" data-rawname="Autorretrato 130x100">
+                <div id="tag-53A0D01B" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 4.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-53A0D01B" onchange="toggleSelect('53A0D01B')" data-val="1025.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/Autorretrato 130x100.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Acrílico sobre tela</span>
+                    <div class="card-title">Autorretrato 130x100 </div>
+                    <div>
+                        <span class="price">$2,050.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-53A0D01B" class="btn-action btn-cert" onclick="desplegarCertificado('53A0D01B')">CARGANDO...</button>
+                
+                <div id="sell-ui-53A0D01B" class="sell-panel">
+                    <input type="number" id="price-in-53A0D01B" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('53A0D01B')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-087CA37E" data-name="jurgen" data-price="2250.0" data-shares="1" data-yield="5.0" data-cap='{"Boveda_Matriarca": 1}' data-id="087CA37E" data-rawname="Jurgen">
+                <div id="tag-087CA37E" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 5.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-087CA37E" onchange="toggleSelect('087CA37E')" data-val="1125.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/Jurgen.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Acrílico y óleo sobre tela</span>
+                    <div class="card-title">Jurgen </div>
+                    <div>
+                        <span class="price">$2,250.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-087CA37E" class="btn-action btn-cert" onclick="desplegarCertificado('087CA37E')">CARGANDO...</button>
+                
+                <div id="sell-ui-087CA37E" class="sell-panel">
+                    <input type="number" id="price-in-087CA37E" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('087CA37E')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-F623F9BE" data-name="tu magia" data-price="1250.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Matriarca": 1}' data-id="F623F9BE" data-rawname="Tu magia">
+                <div id="tag-F623F9BE" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-F623F9BE" onchange="toggleSelect('F623F9BE')" data-val="625.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/Tu magia.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Óleo sobre tela</span>
+                    <div class="card-title">Tu magia </div>
+                    <div>
+                        <span class="price">$1,250.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-F623F9BE" class="btn-action btn-cert" onclick="desplegarCertificado('F623F9BE')">CARGANDO...</button>
+                
+                <div id="sell-ui-F623F9BE" class="sell-panel">
+                    <input type="number" id="price-in-F623F9BE" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('F623F9BE')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-2004C196" data-name="corre, ve y dile" data-price="1600.0" data-shares="1" data-yield="2.9166666666666665" data-cap='{"Boveda_Matriarca": 1}' data-id="2004C196" data-rawname="Corre, ve y dile">
+                <div id="tag-2004C196" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 2.92 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-2004C196" onchange="toggleSelect('2004C196')" data-val="800.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/Corre, ve y dile.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Óleo sobre madera cóncava</span>
+                    <div class="card-title">Corre, ve y dile </div>
+                    <div>
+                        <span class="price">$1,600.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-2004C196" class="btn-action btn-cert" onclick="desplegarCertificado('2004C196')">CARGANDO...</button>
+                
+                <div id="sell-ui-2004C196" class="sell-panel">
+                    <input type="number" id="price-in-2004C196" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('2004C196')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-28540A1F" data-name="la vida en rosa" data-price="2250.0" data-shares="1" data-yield="5.0" data-cap='{"Boveda_Matriarca": 1}' data-id="28540A1F" data-rawname="La vida en rosa">
+                <div id="tag-28540A1F" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 5.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-28540A1F" onchange="toggleSelect('28540A1F')" data-val="1125.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/La vida en rosa.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Óleo sobre tela</span>
+                    <div class="card-title">La vida en rosa </div>
+                    <div>
+                        <span class="price">$2,250.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-28540A1F" class="btn-action btn-cert" onclick="desplegarCertificado('28540A1F')">CARGANDO...</button>
+                
+                <div id="sell-ui-28540A1F" class="sell-panel">
+                    <input type="number" id="price-in-28540A1F" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('28540A1F')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-48D0D191" data-name="y la llevó al río pensando que era mozuela.jpeg" data-price="850.0" data-shares="1" data-yield="2.0" data-cap='{"Boveda_Matriarca": 1}' data-id="48D0D191" data-rawname="Y la llevó al río pensando que era mozuela.jpeg">
+                <div id="tag-48D0D191" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 2.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-48D0D191" onchange="toggleSelect('48D0D191')" data-val="425.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/Y la llevó al río pensando que era mozuela.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Acrílico y óleo sobre tela</span>
+                    <div class="card-title">Y la llevó al río pensando que era mozuela.jpeg </div>
+                    <div>
+                        <span class="price">$850.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-48D0D191" class="btn-action btn-cert" onclick="desplegarCertificado('48D0D191')">CARGANDO...</button>
+                
+                <div id="sell-ui-48D0D191" class="sell-panel">
+                    <input type="number" id="price-in-48D0D191" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('48D0D191')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-2CD00052" data-name="niña mia.jpeg" data-price="1700.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Matriarca": 1}' data-id="2CD00052" data-rawname="Niña mia.jpeg">
+                <div id="tag-2CD00052" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-2CD00052" onchange="toggleSelect('2CD00052')" data-val="850.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/Niña mia.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Óleo sobre tela</span>
+                    <div class="card-title">Niña mia.jpeg </div>
+                    <div>
+                        <span class="price">$1,700.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-2CD00052" class="btn-action btn-cert" onclick="desplegarCertificado('2CD00052')">CARGANDO...</button>
+                
+                <div id="sell-ui-2CD00052" class="sell-panel">
+                    <input type="number" id="price-in-2CD00052" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('2CD00052')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-EB11072B" data-name="nicole" data-price="2050.0" data-shares="1" data-yield="4.0" data-cap='{"Boveda_Matriarca": 1}' data-id="EB11072B" data-rawname="Nicole">
+                <div id="tag-EB11072B" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 4.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-EB11072B" onchange="toggleSelect('EB11072B')" data-val="1025.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Matriarca/Nicole.jpeg" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Acrílico sobre tela</span>
+                    <div class="card-title">Nicole </div>
+                    <div>
+                        <span class="price">$2,050.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Matriarca</span><span>1 sh</span></div></div>
+                
+                <button id="btn-EB11072B" class="btn-action btn-cert" onclick="desplegarCertificado('EB11072B')">CARGANDO...</button>
+                
+                <div id="sell-ui-EB11072B" class="sell-panel">
+                    <input type="number" id="price-in-EB11072B" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('EB11072B')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-D780F591" data-name="dξlphi ∞ - luminescent waves [dream pop synthwave].mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="D780F591" data-rawname="DΞLPHI ∞ - Luminescent Waves [Dream Pop Synthwave].mp3">
+                <div id="tag-D780F591" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-D780F591" onchange="toggleSelect('D780F591')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/DΞLPHI ∞ - Luminescent Waves [Dream Pop Synthwave].mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">DΞLPHI ∞ - Luminescent Waves [Dream Pop Synthwave].mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-D780F591" class="btn-action btn-cert" onclick="desplegarCertificado('D780F591')">CARGANDO...</button>
+                
+                <div id="sell-ui-D780F591" class="sell-panel">
+                    <input type="number" id="price-in-D780F591" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('D780F591')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-FD6B678A" data-name="dξlphi ∞ - cosmic mirage [progressive melodic techno].mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="FD6B678A" data-rawname="DΞLPHI ∞ - Cosmic Mirage [Progressive Melodic Techno].mp3">
+                <div id="tag-FD6B678A" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-FD6B678A" onchange="toggleSelect('FD6B678A')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/DΞLPHI ∞ - Cosmic Mirage [Progressive Melodic Techno].mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">DΞLPHI ∞ - Cosmic Mirage [Progressive Melodic Techno].mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-FD6B678A" class="btn-action btn-cert" onclick="desplegarCertificado('FD6B678A')">CARGANDO...</button>
+                
+                <div id="sell-ui-FD6B678A" class="sell-panel">
+                    <input type="number" id="price-in-FD6B678A" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('FD6B678A')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-F1CB243D" data-name="dξlphivm - alux∆ [mayan techno ritual].mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="F1CB243D" data-rawname="DΞLPHIVM - ALUX∆ [Mayan Techno Ritual].mp3">
+                <div id="tag-F1CB243D" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-F1CB243D" onchange="toggleSelect('F1CB243D')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/DΞLPHIVM - ALUX∆ [Mayan Techno Ritual].mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">DΞLPHIVM - ALUX∆ [Mayan Techno Ritual].mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-F1CB243D" class="btn-action btn-cert" onclick="desplegarCertificado('F1CB243D')">CARGANDO...</button>
+                
+                <div id="sell-ui-F1CB243D" class="sell-panel">
+                    <input type="number" id="price-in-F1CB243D" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('F1CB243D')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-A426E045" data-name="codex pingoloide absoluto (doctrina bélica pingoloide), ping-pong-pingoloide.mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="A426E045" data-rawname="Codex Pingoloide Absoluto (Doctrina Bélica Pingoloide), Ping-Pong-Pingoloide.mp3">
+                <div id="tag-A426E045" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-A426E045" onchange="toggleSelect('A426E045')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/Codex Pingoloide Absoluto (Doctrina Bélica Pingoloide), Ping-Pong-Pingoloide.mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">Codex Pingoloide Absoluto (Doctrina Bélica Pingoloide), Ping-Pong-Pingoloide.mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-A426E045" class="btn-action btn-cert" onclick="desplegarCertificado('A426E045')">CARGANDO...</button>
+                
+                <div id="sell-ui-A426E045" class="sell-panel">
+                    <input type="number" id="price-in-A426E045" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('A426E045')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-490B23C5" data-name="ping pong pingoloid [endgame protocol].mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="490B23C5" data-rawname="Ping Pong Pingoloid [ENDGAME Protocol].mp3">
+                <div id="tag-490B23C5" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-490B23C5" onchange="toggleSelect('490B23C5')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/Ping Pong Pingoloid [ENDGAME Protocol].mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">Ping Pong Pingoloid [ENDGAME Protocol].mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-490B23C5" class="btn-action btn-cert" onclick="desplegarCertificado('490B23C5')">CARGANDO...</button>
+                
+                <div id="sell-ui-490B23C5" class="sell-panel">
+                    <input type="number" id="price-in-490B23C5" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('490B23C5')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-FC354773" data-name="las 7 profecías antipingoloides (tratado antipingológico).mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="FC354773" data-rawname="Las 7 Profecías Antipingoloides (Tratado Antipingológico).mp3">
+                <div id="tag-FC354773" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-FC354773" onchange="toggleSelect('FC354773')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/Las 7 Profecías Antipingoloides (Tratado Antipingológico).mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">Las 7 Profecías Antipingoloides (Tratado Antipingológico).mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-FC354773" class="btn-action btn-cert" onclick="desplegarCertificado('FC354773')">CARGANDO...</button>
+                
+                <div id="sell-ui-FC354773" class="sell-panel">
+                    <input type="number" id="price-in-FC354773" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('FC354773')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-88F93605" data-name="dξlphivm - symphonic disruption [orchestral electronic].mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="88F93605" data-rawname="DΞLPHIVM - Symphonic Disruption [Orchestral Electronic].mp3">
+                <div id="tag-88F93605" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-88F93605" onchange="toggleSelect('88F93605')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/DΞLPHIVM - Symphonic Disruption [Orchestral Electronic].mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">DΞLPHIVM - Symphonic Disruption [Orchestral Electronic].mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-88F93605" class="btn-action btn-cert" onclick="desplegarCertificado('88F93605')">CARGANDO...</button>
+                
+                <div id="sell-ui-88F93605" class="sell-panel">
+                    <input type="number" id="price-in-88F93605" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('88F93605')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-B3977930" data-name="p.i.n.g.o.l.o.i.d.s [universal game over mix].mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="B3977930" data-rawname="P.I.N.G.O.L.O.I.D.S [Universal Game Over Mix].mp3">
+                <div id="tag-B3977930" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-B3977930" onchange="toggleSelect('B3977930')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/P.I.N.G.O.L.O.I.D.S [Universal Game Over Mix].mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">P.I.N.G.O.L.O.I.D.S [Universal Game Over Mix].mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-B3977930" class="btn-action btn-cert" onclick="desplegarCertificado('B3977930')">CARGANDO...</button>
+                
+                <div id="sell-ui-B3977930" class="sell-panel">
+                    <input type="number" id="price-in-B3977930" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('B3977930')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-BE57E0FC" data-name="dξlphivm - symphonic disruption [orchestral electronic] [vocals].mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="BE57E0FC" data-rawname="DΞLPHIVM - Symphonic Disruption [Orchestral Electronic] [Vocals].mp3">
+                <div id="tag-BE57E0FC" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-BE57E0FC" onchange="toggleSelect('BE57E0FC')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/DΞLPHIVM - Symphonic Disruption [Orchestral Electronic] [Vocals].mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">DΞLPHIVM - Symphonic Disruption [Orchestral Electronic] [Vocals].mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-BE57E0FC" class="btn-action btn-cert" onclick="desplegarCertificado('BE57E0FC')">CARGANDO...</button>
+                
+                <div id="sell-ui-BE57E0FC" class="sell-panel">
+                    <input type="number" id="price-in-BE57E0FC" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('BE57E0FC')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-3DFAFDF6" data-name="codex pingoloide absoluto (pingología cognitiva), pingo@ pingo@ pingoloides@.mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="3DFAFDF6" data-rawname="Codex Pingoloide Absoluto (Pingología Cognitiva), Pingo@ Pingo@ Pingoloides@.mp3">
+                <div id="tag-3DFAFDF6" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-3DFAFDF6" onchange="toggleSelect('3DFAFDF6')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/Codex Pingoloide Absoluto (Pingología Cognitiva), Pingo@ Pingo@ Pingoloides@.mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">Codex Pingoloide Absoluto (Pingología Cognitiva), Pingo@ Pingo@ Pingoloides@.mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-3DFAFDF6" class="btn-action btn-cert" onclick="desplegarCertificado('3DFAFDF6')">CARGANDO...</button>
+                
+                <div id="sell-ui-3DFAFDF6" class="sell-panel">
+                    <input type="number" id="price-in-3DFAFDF6" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('3DFAFDF6')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-1AF02F00" data-name="dξlphi ∞ - delphinity ascendance [celestial club experience].mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="1AF02F00" data-rawname="DΞLPHI ∞ - Delphinity Ascendance [Celestial Club Experience].mp3">
+                <div id="tag-1AF02F00" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-1AF02F00" onchange="toggleSelect('1AF02F00')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/DΞLPHI ∞ - Delphinity Ascendance [Celestial Club Experience].mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">DΞLPHI ∞ - Delphinity Ascendance [Celestial Club Experience].mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-1AF02F00" class="btn-action btn-cert" onclick="desplegarCertificado('1AF02F00')">CARGANDO...</button>
+                
+                <div id="sell-ui-1AF02F00" class="sell-panel">
+                    <input type="number" id="price-in-1AF02F00" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('1AF02F00')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-552E8331" data-name="codex divinorvm @pingoland [whitefire singularity] [no bureaucracy mix].mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="552E8331" data-rawname="Codex Divinorvm @Pingoland [Whitefire Singularity] [NO Bureaucracy Mix].mp3">
+                <div id="tag-552E8331" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-552E8331" onchange="toggleSelect('552E8331')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/Codex Divinorvm @Pingoland [Whitefire Singularity] [NO Bureaucracy Mix].mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">Codex Divinorvm @Pingoland [Whitefire Singularity] [NO Bureaucracy Mix].mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-552E8331" class="btn-action btn-cert" onclick="desplegarCertificado('552E8331')">CARGANDO...</button>
+                
+                <div id="sell-ui-552E8331" class="sell-panel">
+                    <input type="number" id="price-in-552E8331" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('552E8331')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-27065DB8" data-name="dξlφmπɑø - the final dance of the magician [epic mythological electronic experience].mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="27065DB8" data-rawname="DΞLφMΠⱭØ - The Final Dance of the Magician [Epic Mythological Electronic Experience].mp3">
+                <div id="tag-27065DB8" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-27065DB8" onchange="toggleSelect('27065DB8')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/DΞLφMΠⱭØ - The Final Dance of the Magician [Epic Mythological Electronic Experience].mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">DΞLφMΠⱭØ - The Final Dance of the Magician [Epic Mythological Electronic Experience].mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-27065DB8" class="btn-action btn-cert" onclick="desplegarCertificado('27065DB8')">CARGANDO...</button>
+                
+                <div id="sell-ui-27065DB8" class="sell-panel">
+                    <input type="number" id="price-in-27065DB8" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('27065DB8')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-E42C4771" data-name="armageddon pingoloide (ragnarok.pingo).mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="E42C4771" data-rawname="Armageddon Pingoloide (Ragnarok.pingo).mp3">
+                <div id="tag-E42C4771" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-E42C4771" onchange="toggleSelect('E42C4771')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/Armageddon Pingoloide (Ragnarok.pingo).mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">Armageddon Pingoloide (Ragnarok.pingo).mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-E42C4771" class="btn-action btn-cert" onclick="desplegarCertificado('E42C4771')">CARGANDO...</button>
+                
+                <div id="sell-ui-E42C4771" class="sell-panel">
+                    <input type="number" id="price-in-E42C4771" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('E42C4771')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-6E485C5A" data-name="codex pingoloico metatrónico v.3 – proto-revelación pre-aleph (arquitectura de teopingología expansiva y despertar del núcleo divino).mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="6E485C5A" data-rawname="Codex Pingoloico Metatrónico v.3 – Proto-Revelación Pre-Aleph (Arquitectura de TeoPingología Expansiva y Despertar del Núcleo Divino).mp3">
+                <div id="tag-6E485C5A" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-6E485C5A" onchange="toggleSelect('6E485C5A')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/Codex Pingoloico Metatrónico v.3 – Proto-Revelación Pre-Aleph (Arquitectura de TeoPingología Expansiva y Despertar del Núcleo Divino).mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">Codex Pingoloico Metatrónico v.3 – Proto-Revelación Pre-Aleph (Arquitectura de TeoPingología Expansiva y Despertar del Núcleo Divino).mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-6E485C5A" class="btn-action btn-cert" onclick="desplegarCertificado('6E485C5A')">CARGANDO...</button>
+                
+                <div id="sell-ui-6E485C5A" class="sell-panel">
+                    <input type="number" id="price-in-6E485C5A" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('6E485C5A')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-D077813C" data-name="ad. 2025, pingoloid [aleph-p ∞_ admin ∞] @pingo.mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="D077813C" data-rawname="AD. 2025, Pingoloid [ALEPH-P ∞_ ADMIN ∞] @Pingo.mp3">
+                <div id="tag-D077813C" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-D077813C" onchange="toggleSelect('D077813C')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/AD. 2025, Pingoloid [ALEPH-P ∞_ ADMIN ∞] @Pingo.mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">AD. 2025, Pingoloid [ALEPH-P ∞_ ADMIN ∞] @Pingo.mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-D077813C" class="btn-action btn-cert" onclick="desplegarCertificado('D077813C')">CARGANDO...</button>
+                
+                <div id="sell-ui-D077813C" class="sell-panel">
+                    <input type="number" id="price-in-D077813C" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('D077813C')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-B84FCFC9" data-name="dξlphi ∞ - infinity odyssey [progressive house] [vocals].mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="B84FCFC9" data-rawname="DΞLPHI ∞ - Infinity Odyssey [Progressive House] [Vocals].mp3">
+                <div id="tag-B84FCFC9" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-B84FCFC9" onchange="toggleSelect('B84FCFC9')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/DΞLPHI ∞ - Infinity Odyssey [Progressive House] [Vocals].mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">DΞLPHI ∞ - Infinity Odyssey [Progressive House] [Vocals].mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-B84FCFC9" class="btn-action btn-cert" onclick="desplegarCertificado('B84FCFC9')">CARGANDO...</button>
+                
+                <div id="sell-ui-B84FCFC9" class="sell-panel">
+                    <input type="number" id="price-in-B84FCFC9" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('B84FCFC9')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-4ACE776D" data-name="dξlphivm - oblivion protocol [dark melodic techno].mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="4ACE776D" data-rawname="DΞLPHIVM - Oblivion Protocol [Dark Melodic Techno].mp3">
+                <div id="tag-4ACE776D" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-4ACE776D" onchange="toggleSelect('4ACE776D')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/DΞLPHIVM - Oblivion Protocol [Dark Melodic Techno].mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">DΞLPHIVM - Oblivion Protocol [Dark Melodic Techno].mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-4ACE776D" class="btn-action btn-cert" onclick="desplegarCertificado('4ACE776D')">CARGANDO...</button>
+                
+                <div id="sell-ui-4ACE776D" class="sell-panel">
+                    <input type="number" id="price-in-4ACE776D" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('4ACE776D')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-24E578D3" data-name="pingolo, the pingoloid laser.mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="24E578D3" data-rawname="Pingolo, The Pingoloid Laser.mp3">
+                <div id="tag-24E578D3" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-24E578D3" onchange="toggleSelect('24E578D3')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/Pingolo, The Pingoloid Laser.mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">Pingolo, The Pingoloid Laser.mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-24E578D3" class="btn-action btn-cert" onclick="desplegarCertificado('24E578D3')">CARGANDO...</button>
+                
+                <div id="sell-ui-24E578D3" class="sell-panel">
+                    <input type="number" id="price-in-24E578D3" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('24E578D3')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-3680E20F" data-name="dξlphivm - ∆я☾∆ᑎ◉ [mythic progressive techno journey].mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="3680E20F" data-rawname="DΞLPHIVM - ∆Я☾∆ᑎ◉ [Mythic Progressive Techno Journey].mp3">
+                <div id="tag-3680E20F" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-3680E20F" onchange="toggleSelect('3680E20F')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/DΞLPHIVM - ∆Я☾∆ᑎ◉ [Mythic Progressive Techno Journey].mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">DΞLPHIVM - ∆Я☾∆ᑎ◉ [Mythic Progressive Techno Journey].mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-3680E20F" class="btn-action btn-cert" onclick="desplegarCertificado('3680E20F')">CARGANDO...</button>
+                
+                <div id="sell-ui-3680E20F" class="sell-panel">
+                    <input type="number" id="price-in-3680E20F" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('3680E20F')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-C559CE57" data-name="dξlphivm - ecliptica delphina celestia [orchestral progressive techno].mp3" data-price="1500.0" data-shares="1" data-yield="3.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="C559CE57" data-rawname="DΞLPHIVM - Ecliptica Delphina Celestia [Orchestral Progressive Techno].mp3">
+                <div id="tag-C559CE57" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 3.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-C559CE57" onchange="toggleSelect('C559CE57')" data-val="750.0" >
+                
+                <div class="media-container"><audio controls><source src="Boveda_Activos/Boveda_Arquitecto/DΞLPHIVM - Ecliptica Delphina Celestia [Orchestral Progressive Techno].mp3" type="audio/mpeg"></audio></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Himno Nacional</span>
+                    <div class="card-title">DΞLPHIVM - Ecliptica Delphina Celestia [Orchestral Progressive Techno].mp3 </div>
+                    <div>
+                        <span class="price">$1,500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-C559CE57" class="btn-action btn-cert" onclick="desplegarCertificado('C559CE57')">CARGANDO...</button>
+                
+                <div id="sell-ui-C559CE57" class="sell-panel">
+                    <input type="number" id="price-in-C559CE57" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('C559CE57')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-0303740B" data-name="delphia - angelogénesis y metaverso fundacional (full document).pdf" data-price="5000.0" data-shares="1" data-yield="10.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="0303740B" data-rawname="DELPHIA - Angelogénesis y Metaverso Fundacional (Full Document).pdf">
+                <div id="tag-0303740B" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 10.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-0303740B" onchange="toggleSelect('0303740B')" data-val="2500.0" >
+                
+                <div class="media-container"><iframe src="Boveda_Activos/Boveda_Arquitecto/Documentos_Fundacionales/DELPHIA - Angelogénesis y Metaverso Fundacional (Full Document).pdf#toolbar=0"></iframe></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Documento Fundacional</span>
+                    <div class="card-title">DELPHIA - Angelogénesis y Metaverso Fundacional (Full Document).pdf </div>
+                    <div>
+                        <span class="price">$5,000.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-0303740B" class="btn-action btn-cert" onclick="desplegarCertificado('0303740B')">CARGANDO...</button>
+                
+                <div id="sell-ui-0303740B" class="sell-panel">
+                    <input type="number" id="price-in-0303740B" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('0303740B')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-2293AB03" data-name="carta magna - celestia (v5.0).pages" data-price="5000.0" data-shares="1" data-yield="10.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="2293AB03" data-rawname="Carta Magna - Celestia (v5.0).pages">
+                <div id="tag-2293AB03" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 10.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-2293AB03" onchange="toggleSelect('2293AB03')" data-val="2500.0" >
+                
+                <div class="media-container"><div style="color:#444; font-size:11px;">[ Sin Preview ]</div></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Documento Fundacional</span>
+                    <div class="card-title">Carta Magna - Celestia (v5.0).pages </div>
+                    <div>
+                        <span class="price">$5,000.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-2293AB03" class="btn-action btn-cert" onclick="desplegarCertificado('2293AB03')">CARGANDO...</button>
+                
+                <div id="sell-ui-2293AB03" class="sell-panel">
+                    <input type="number" id="price-in-2293AB03" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('2293AB03')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-3E3C13E7" data-name="the k-vi multiversal menagerie.png" data-price="5000.0" data-shares="100" data-yield="0.1" data-cap='{"Boveda_Arquitecto": 98, "SOCIO_FEDE_BARRERA_01": 2}' data-id="3E3C13E7" data-rawname="The K-VI Multiversal Menagerie.png">
+                <div id="tag-3E3C13E7" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 0.10 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-3E3C13E7" onchange="toggleSelect('3E3C13E7')" data-val="2500.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Arquitecto/Documentos_Fundacionales/The K-VI Multiversal Menagerie.png" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Documento Fundacional</span>
+                    <div class="card-title">The K-VI Multiversal Menagerie.png </div>
+                    <div>
+                        <span class="price">$5,000.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>98 sh</span></div><div class="cap-row"><span>SOCIO_FEDE_BARRERA_01</span><span>2 sh</span></div></div>
+                
+                <button id="btn-3E3C13E7" class="btn-action btn-cert" onclick="desplegarCertificado('3E3C13E7')">CARGANDO...</button>
+                
+                <div id="sell-ui-3E3C13E7" class="sell-panel">
+                    <input type="number" id="price-in-3E3C13E7" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('3E3C13E7')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-98FC14F6" data-name="_delphion_v.1.delphicloop.numbers" data-price="5000.0" data-shares="1" data-yield="10.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="98FC14F6" data-rawname="_DelphiON_v.1.delphicLoop.numbers">
+                <div id="tag-98FC14F6" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 10.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-98FC14F6" onchange="toggleSelect('98FC14F6')" data-val="2500.0" >
+                
+                <div class="media-container"><div style="color:#444; font-size:11px;">[ Sin Preview ]</div></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Documento Fundacional</span>
+                    <div class="card-title">_DelphiON_v.1.delphicLoop.numbers </div>
+                    <div>
+                        <span class="price">$5,000.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-98FC14F6" class="btn-action btn-cert" onclick="desplegarCertificado('98FC14F6')">CARGANDO...</button>
+                
+                <div id="sell-ui-98FC14F6" class="sell-panel">
+                    <input type="number" id="price-in-98FC14F6" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('98FC14F6')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-57F93831" data-name="introducción a los principios de la arquitectura del sistema delphis.pdf" data-price="5000.0" data-shares="1" data-yield="10.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="57F93831" data-rawname="Introducción a los Principios de la Arquitectura del Sistema Delphis.pdf">
+                <div id="tag-57F93831" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 10.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-57F93831" onchange="toggleSelect('57F93831')" data-val="2500.0" >
+                
+                <div class="media-container"><iframe src="Boveda_Activos/Boveda_Arquitecto/Documentos_Fundacionales/Introducción a los Principios de la Arquitectura del Sistema Delphis.pdf#toolbar=0"></iframe></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Documento Fundacional</span>
+                    <div class="card-title">Introducción a los Principios de la Arquitectura del Sistema Delphis.pdf </div>
+                    <div>
+                        <span class="price">$5,000.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-57F93831" class="btn-action btn-cert" onclick="desplegarCertificado('57F93831')">CARGANDO...</button>
+                
+                <div id="sell-ui-57F93831" class="sell-panel">
+                    <input type="number" id="price-in-57F93831" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('57F93831')">VENDER</button>
+                </div>
+            </div>
+        
+            <div class="card" id="card-79F0853C" data-name="your imagination is the terrotory. defend it..png" data-price="500.0" data-shares="1" data-yield="1.0" data-cap='{"Boveda_Arquitecto": 1}' data-id="79F0853C" data-rawname="Your Imagination is the Terrotory. Defend It..png">
+                <div id="tag-79F0853C" class="sale-tag" style="display:none;">🏷️ EN VENTA</div>
+                <div class="yield-badge">💎 1.00 DPX/sh</div>
+                <input type="checkbox" class="colateral-check" id="check-79F0853C" onchange="toggleSelect('79F0853C')" data-val="250.0" >
+                
+                <div class="media-container"><img src="Boveda_Activos/Boveda_Arquitecto/Documentos_Fundacionales/Your Imagination is the Terrotory. Defend It..png" loading="lazy"></div>
+                <div class="card-info" style="margin-bottom: 10px;">
+                    <span style="font-size:9px; color:var(--gold); text-transform:uppercase;">Documento Fundacional</span>
+                    <div class="card-title">Your Imagination is the Terrotory. Defend It..png </div>
+                    <div>
+                        <span class="price">$500.00</span>
+                        <span class="root-val">⚛️ ROOT: 10³⁶ Φ</span>
+                    </div>
+                </div>
+                <div class="cap-table"><div class="cap-row"><span>Boveda_Arquitecto</span><span>1 sh</span></div></div>
+                
+                <button id="btn-79F0853C" class="btn-action btn-cert" onclick="desplegarCertificado('79F0853C')">CARGANDO...</button>
+                
+                <div id="sell-ui-79F0853C" class="sell-panel">
+                    <input type="number" id="price-in-79F0853C" placeholder="Precio DPX" style="width:60%; padding:5px; background:black; border:1px solid var(--blue); color:white;">
+                    <button class="btn-action" style="padding:5px 10px; border-color:var(--blue); color:var(--blue);" onclick="crearVenta('79F0853C')">VENDER</button>
+                </div>
+            </div>
+        
+        </div>
+        <script>
+            const bancoData = {"Boveda_Arquitecto": {"Saldo": 999020000.0, "Tipo": "FUNDADOR"}, "Boveda_Delphi": {"Saldo": 600000.0, "Tipo": "FUNDADOR"}, "Boveda_Matriarca": {"Saldo": 380719.9166666667, "Tipo": "FUNDADOR"}, "SOCIO_FEDE_BARRERA_01": {"Saldo": 1666.8666666666663, "Tipo": "INVERSIONISTA BETA"}, "SOCIO_RICK_CATARIO_02": {"Saldo": 1111.111111111111, "Tipo": "INVERSIONISTA BETA"}, "SOCIO_EDUARDO_ROJO_03": {"Saldo": 1111.111111111111, "Tipo": "INVERSIONISTA BETA"}, "SOCIO_RAFA_RAPTHOR_04": {"Saldo": 555.5555555555555, "Tipo": "INVERSIONISTA BETA"}, "SOCIO_ROBERTO_RIOS_05": {"Saldo": 555.5555555555555, "Tipo": "INVERSIONISTA BETA"}, "SOCIO_ROB_CATARIO_06": {"Saldo": 333.3333333333333, "Tipo": "INVERSIONISTA BETA"}, "SOCIO_DENISE_RICK_CATARIO_07": {"Saldo": 222.22222222222223, "Tipo": "INVERSIONISTA BETA"}, "SOCIO_MAURICIO_BARRERA_08": {"Saldo": 111.11111111111111, "Tipo": "INVERSIONISTA BETA"}, "SOCIO_SERGIO_CHAVEZ_09": {"Saldo": 111.11111111111111, "Tipo": "INVERSIONISTA BETA"}};
+            const mercadoData = [{"Order_ID":"ORD-BD64E203","Asset_ID":"DLPH-914B2FE5","Vendedor":"Boveda_Matriarca","Acciones":1,"Precio_DPX":50.0,"Status":"OPEN"}];
+            const mapaMaestros = {"F623F9BE": "Certificado_DLPH-F623F9BE_Tu magia.html", "48D0D191": "Certificado_DLPH-48D0D191_Y la llevo\u0301 al ri\u0301o pensando que era mozuela.jpeg.html", "2293AB03": "Certificado_DLPH-2293AB03_Carta Magna - Celestia (v5.0).pages.html", "C559CE57": "Certificado_DLPH-C559CE57_D\u039eLPHIVM - Ecliptica Delphina Celestia [Orchestral Progressive Techno].mp3.html", "FD6B678A": "Certificado_DLPH-FD6B678A_D\u039eLPHI \u221e - Cosmic Mirage [Progressive Melodic Techno].mp3.html", "BA7B9E7C": "Certificado_DLPH-BA7B9E7C_La vida en rosa 2.html", "88F93605": "Certificado_DLPH-88F93605_D\u039eLPHIVM - Symphonic Disruption [Orchestral Electronic].mp3.html", "D077813C": "Certificado_DLPH-D077813C_AD. 2025, Pingoloid [ALEPH-P \u221e_ ADMIN \u221e] @Pingo.mp3.html", "914B2FE5": "Certificado_DLPH-914B2FE5_INVENTARIO_OBRA_MAR.pdf.html", "2324F906": "Certificado_DLPH-2324F906_Autorretrato 100x130.html", "A012F945": "Certificado_DLPH-A012F945_Siempre unidos.html", "490B23C5": "Certificado_DLPH-490B23C5_Ping Pong Pingoloid [ENDGAME Protocol].mp3.html", "E42C4771": "Certificado_DLPH-E42C4771_Armageddon Pingoloide (Ragnarok.pingo).mp3.html", "85B547DB": "Certificado_DLPH-85B547DB_La magia en la que estoy presa.html", "3680E20F": "Certificado_DLPH-3680E20F_D\u039eLPHIVM - \u2206\u042f\u263e\u2206\u144e\u25c9 [Mythic Progressive Techno Journey].mp3.html", "087CA37E": "Certificado_DLPH-087CA37E_Jurgen.html", "F7A069F3": "Certificado_DLPH-F7A069F3_Naranja Dulce.html", "D8A3D82C": "Certificado_DLPH-D8A3D82C_Aqui estoy.html", "79F0853C": "Certificado_DLPH-79F0853C_Your Imagination is the Terrotory. Defend It..png.html", "28540A1F": "Certificado_DLPH-28540A1F_La vida en rosa.html", "0303740B": "Certificado_DLPH-0303740B_DELPHIA - Angeloge\u0301nesis y Metaverso Fundacional (Full Document).pdf.html", "D780F591": "Certificado_DLPH-D780F591_D\u039eLPHI \u221e - Luminescent Waves [Dream Pop Synthwave].mp3.html", "F1CB243D": "Certificado_DLPH-F1CB243D_D\u039eLPHIVM - ALUX\u2206 [Mayan Techno Ritual].mp3.html", "1AF02F00": "Certificado_DLPH-1AF02F00_D\u039eLPHI \u221e - Delphinity Ascendance [Celestial Club Experience].mp3.html", "3DFAFDF6": "Certificado_DLPH-3DFAFDF6_Codex Pingoloide Absoluto (Pingolog\u00eda Cognitiva), Pingo@ Pingo@ Pingoloides@.mp3.html", "3E3C13E7": "Certificado_DLPH-3E3C13E7_The K-VI Multiversal Menagerie.png.html", "4ACE776D": "Certificado_DLPH-4ACE776D_D\u039eLPHIVM - Oblivion Protocol [Dark Melodic Techno].mp3.html", "DEE9DAA6": "Certificado_DLPH-DEE9DAA6_El azar se parece al deseo.html", "A426E045": "Certificado_DLPH-A426E045_Codex Pingoloide Absoluto (Doctrina B\u00e9lica Pingoloide), Ping-Pong-Pingoloide.mp3.html", "2004C196": "Certificado_DLPH-2004C196_Corre, ve y dile.html", "3C66BC14": "Certificado_DLPH-3C66BC14_Roberta.html", "FC354773": "Certificado_DLPH-FC354773_Las 7 Profec\u00edas Antipingoloides (Tratado Antipingol\u00f3gico).mp3.html", "24E578D3": "Certificado_DLPH-24E578D3_Pingolo, The Pingoloid Laser.mp3.html", "552E8331": "Certificado_DLPH-552E8331_Codex Divinorvm @Pingoland [Whitefire Singularity] [NO Bureaucracy Mix].mp3.html", "3BB842F7": "Certificado_DLPH-3BB842F7_Ni contigo, ni sin ti.html", "53A0D01B": "Certificado_DLPH-53A0D01B_Autorretrato 130x100.html", "2CD00052": "Certificado_DLPH-2CD00052_Nin\u0303a mia.jpeg.html", "57F93831": "Certificado_DLPH-57F93831_Introduccio\u0301n a los Principios de la Arquitectura del Sistema Delphis.pdf.html", "D4ABDAB6": "Certificado_DLPH-D4ABDAB6__...que como, cuando y donde?.html", "98FC14F6": "Certificado_DLPH-98FC14F6__DelphiON_v.1.delphicLoop.numbers.html", "B84FCFC9": "Certificado_DLPH-B84FCFC9_D\u039eLPHI \u221e - Infinity Odyssey [Progressive House] [Vocals].mp3.html", "B3977930": "Certificado_DLPH-B3977930_P.I.N.G.O.L.O.I.D.S [Universal Game Over Mix].mp3.html", "EB11072B": "Certificado_DLPH-EB11072B_Nicole.html", "BE57E0FC": "Certificado_DLPH-BE57E0FC_D\u039eLPHIVM - Symphonic Disruption [Orchestral Electronic] [Vocals].mp3.html", "DEF384E9": "Certificado_DLPH-DEF384E9_Ti\u0301a Lupita.jpeg.html", "27065DB8": "Certificado_DLPH-27065DB8_D\u039eL\u03c6M\u03a0\u2c6d\u00d8 - The Final Dance of the Magician [Epic Mythological Electronic Experience].mp3.html", "6E485C5A": "Certificado_DLPH-6E485C5A_Codex Pingoloico Metatro\u0301nico v.3 \u2013 Proto-Revelacio\u0301n Pre-Aleph (Arquitectura de TeoPingologi\u0301a Expansiva y Despertar del Nu\u0301cleo Divino).mp3.html"};
+            let selectedAssets = [];
+
+            // FUNCIÓN PARA ABRIR HTML EN NUEVO TAB (BASADO EN TU IMAGEN DE ARCHIVOS)
+            function desplegarCertificado(id) {
+                const sob = document.getElementById('sobFilter').value;
+                const folder = "Certificados_Emitidos/";
+                let path = "";
+
+                if(sob === "ALL") {
+                    // Patrón Maestro: Certificado_DLPH-[ID]_[Nombre].html
+                    const file = mapaMaestros[id];
+                    if(file) path = folder + file;
+                    else alert("Certificado Maestro no encontrado para DLPH-" + id);
+                } else {
+                    // Patrón Título: Titulo_[Soberano]_DLPH-[ID].html
+                    path = folder + "Titulo_" + sob + "_DLPH-" + id + ".html";
+                }
+                
+                if(path) window.open(path, '_blank');
+            }
+
+            function toggleSelect(id) {
+                const check = document.getElementById('check-' + id);
+                const card = document.getElementById('card-' + id);
+                if(check.checked) { selectedAssets.push(id); card.classList.add('selected'); }
+                else { selectedAssets = selectedAssets.filter(i => i !== id); card.classList.remove('selected'); }
+                let t = 0; selectedAssets.forEach(i => t += parseFloat(document.getElementById('check-'+i).dataset.val));
+                document.getElementById('creditTotal').innerText = t.toLocaleString();
+                document.getElementById('btnRequestCredit').disabled = selectedAssets.length === 0;
+            }
+
+            function crearVenta(id) {
+                const p = document.getElementById('price-in-'+id).value;
+                const sob = document.getElementById('sobFilter').value;
+                if(!p) return alert("Ingresa un precio.");
+                alert("EJECUTA EN TERMINAL:\n\npython3 -c \"import motor_p2p; motor_p2p.crear_orden('DLPH-${id}', '${sob}', ${p})\"");
+            }
+
+            function comprarActivo(orderId) {
+                const sob = document.getElementById('sobFilter').value;
+                if(sob === 'ALL') return alert("Selecciona un Soberano para comprar.");
+                alert("EJECUTA EN TERMINAL:\n\npython3 -c \"import motor_p2p; motor_p2p.ejecutar_compra('${orderId}', '${sob}')\"");
+            }
+
+            function generarOrden() {
+                const sob = document.getElementById('sobFilter').value;
+                const idsString = selectedAssets.map(id => `'DLPH-${id}'`).join(", ");
+                alert("EJECUTA EN TERMINAL:\n\npython3 -c \"import procesar_credito; procesar_credito.otorgar_credito('${sob}', [${idsString}])\"");
+            }
+
+            function update() {
+                const term = document.getElementById('search').value.toLowerCase();
+                const sob = document.getElementById('sobFilter').value;
+                const sort = document.getElementById('sortOrder').value;
+                const cards = Array.from(document.getElementsByClassName('card'));
+                
+                // Aplicar Sorting
+                cards.sort((a, b) => {
+                    if(sort === 'name_asc') return a.dataset.rawname.localeCompare(b.dataset.rawname);
+                    if(sort === 'price_desc') return b.dataset.price - a.dataset.price;
+                    if(sort === 'price_asc') return a.dataset.price - b.dataset.price;
+                });
+                const grid = document.getElementById('mainGrid');
+                cards.forEach(c => grid.appendChild(c));
+
+                let count = 0, wealthTotal = 0, yieldUser = 0;
+                
+                // Actualizar Market
+                const marketGrid = document.getElementById('marketGrid');
+                marketGrid.innerHTML = "";
+                const orders = mercadoData.filter(o => o.Vendedor !== sob);
+                orders.forEach(o => {
+                    const c = cards.find(card => "DLPH-"+card.dataset.id === o.Asset_ID || card.dataset.id === o.Asset_ID);
+                    if(c) {
+                        marketGrid.innerHTML += `
+                            <div class="market-item">
+                                <div style="flex-grow:1">
+                                    <div style="font-size:12px; font-weight:bold;">${c.dataset.rawname}</div>
+                                    <div style="font-size:10px; color:var(--blue);">${o.Precio_DPX} DPX</div>
+                                </div>
+                                <button class="btn-action" style="border-color:var(--blue); color:var(--blue);" onclick="comprarActivo('${o.Order_ID}')">COMPRAR</button>
+                            </div>`;
+                    }
+                });
+                document.getElementById('marketSection').style.display = orders.length ? 'block' : 'none';
+
+                cards.forEach(c => {
+                    const cap = JSON.parse(c.dataset.cap);
+                    const isVisible = c.dataset.name.includes(term) && (sob === 'ALL' || cap.hasOwnProperty(sob));
+                    c.style.display = isVisible ? 'flex' : 'none';
+                    
+                    if(isVisible) {
+                        count++;
+                        const price = parseFloat(c.dataset.price);
+                        if(sob === 'ALL') {
+                            wealthTotal += price;
+                            document.getElementById('btn-' + c.dataset.id).innerText = "📄 CERTIFICADO MAESTRO";
+                        } else {
+                            const uSh = cap[sob];
+                            wealthTotal += (uSh / parseInt(c.dataset.shares)) * price;
+                            yieldUser += (uSh * parseFloat(c.dataset.yield));
+                            document.getElementById('btn-' + c.dataset.id).innerText = "📜 TÍTULO DE PROPIEDAD";
+                        }
+                    }
+                    
+                    const esDueno = sob !== 'ALL' && cap.hasOwnProperty(sob);
+                    const order = mercadoData.find(o => o.Asset_ID === "DLPH-"+c.dataset.id || o.Asset_ID === c.dataset.id);
+                    document.getElementById('sell-ui-'+c.dataset.id).style.display = (esDueno && !order) ? 'block' : 'none';
+                    document.getElementById('check-'+c.dataset.id).style.display = (esDueno && !order) ? 'block' : 'none';
+                    document.getElementById('tag-'+c.dataset.id).style.display = order ? 'block' : 'none';
+                });
+
+                document.getElementById('wealthVal').innerText = '$' + wealthTotal.toLocaleString();
+                const wp = document.getElementById('walletPanel');
+                
+                if(sob === 'ALL') {
+                    wp.style.display = 'none';
+                } else {
+                    wp.style.display = 'block';
+                    const bank = bancoData[sob] || {Saldo:0};
+                    document.getElementById('walletName').innerText = sob;
+                    document.getElementById('walletSaldo').innerText = bank.Saldo.toLocaleString() + " DPX";
+                    document.getElementById('walletWealth').innerText = "$" + wealthTotal.toLocaleString();
+                    document.getElementById('walletPoder').innerText = "$" + (bank.Saldo + wealthTotal).toLocaleString();
+                    
+                    if(sob === 'Boveda_Arquitecto') {
+                        document.getElementById('itemYield').style.display = 'none';
+                        document.getElementById('itemLTV').style.display = 'none';
+                        document.getElementById('creditConsole').style.display = 'none';
+                        document.getElementById('walletPoderLabel').innerText = 'LIQUIDEZ RESPALDO (M0)';
+                    } else {
+                        document.getElementById('itemYield').style.display = 'block';
+                        document.getElementById('itemLTV').style.display = 'block';
+                        document.getElementById('creditConsole').style.display = 'block';
+                        document.getElementById('walletPoderLabel').innerText = 'NET WORTH (PODER)';
+                        document.getElementById('walletYield').innerText = yieldUser.toLocaleString(undefined, {minimumFractionDigits: 2}) + " DPX / mes";
+                        document.getElementById('walletLTV').innerText = (wealthTotal * 0.5).toLocaleString() + " DPX";
+                    }
+                }
+            }
+            update();
+        </script>
+    </body></html>
+    
