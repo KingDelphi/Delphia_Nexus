@@ -2,13 +2,8 @@ import streamlit as st
 import pandas as pd
 import os
 import hashlib
+from fpdf import FPDF
 import io
-
-# Intentamos importar fpdf con un manejo de error para que la app no muera si falta
-try:
-    from fpdf import FPDF
-except ImportError:
-    st.error("⚠️ Falta la librería 'fpdf'. Por favor, añade 'fpdf' a tu archivo requirements.txt")
 
 # 1. APEX STELLAR AESTHETICS (GRID SYSTEM & HIGH CONTRAST)
 def apply_theme():
@@ -21,42 +16,51 @@ def apply_theme():
         .stApp { background-color: #0c0e12; color: #d4af37; }
         
         /* Metrics Header Contrast Fix */
-        [data-testid="stMetricLabel"] p { color: #d4af37 !important; font-weight: bold !important; font-size: 10px !important; }
-        [data-testid="stMetricValue"] div { color: #ffffff !important; font-size: 16px !important; }
-        div[data-testid="stMetric"] { 
-            background-color: #161b22; border: 1px solid #d4af37; 
-            padding: 5px 10px !important; border-radius: 3px; 
-        }
+        div[data-testid="stMetricLabel"] > div { color: #d4af37 !important; font-weight: bold !important; font-size: 10px !important; }
+        div[data-testid="stMetricValue"] > div { color: #ffffff !important; font-size: 16px !important; }
+        div[data-testid="stMetric"] { background-color: #161b22; border: 1px solid #d4af37; padding: 5px 10px !important; border-radius: 3px; }
 
         /* Unified Asset Card Architecture */
         .asset-card { 
             background-color: #1c2128; border: 1px solid #30363d; 
             padding: 10px; border-radius: 4px; 
-            height: 350px; /* Altura fija para uniformidad */
+            height: 380px; 
             display: flex; flex-direction: column; justify-content: space-between;
             text-align: center; margin-bottom: 15px;
         }
         .asset-card:hover { border: 1px solid #d4af37; background-color: #21262d; }
         
-        /* Standardized Image Container */
-        .img-slot {
-            width: 100%; height: 160px; 
+        /* Standardized Image & Placeholder Container */
+        .img-container {
+            width: 100%; height: 180px; 
             overflow: hidden; border-radius: 2px;
             background-color: #000; display: flex; align-items: center; justify-content: center;
             margin-bottom: 5px;
         }
-        .img-slot img { width: 100%; height: 100%; object-fit: cover; }
-
-        .asset-title {
-            font-size: 8.5px !important; font-weight: bold; color: #ffffff !important;
-            margin: 5px 0 !important; line-height: 1.2; height: 35px;
-            display: flex; align-items: center; justify-content: center;
-            text-transform: uppercase;
+        
+        /* CSS to fix the "double box" and force image standardization */
+        [data-testid="stImage"] {
+            height: 180px !important;
+            width: 100% !important;
+            margin-top: -10px !important; /* Eliminates ghost space */
+        }
+        [data-testid="stImage"] img {
+            height: 180px !important;
+            width: 100% !important;
+            object-fit: cover !important;
+            border-radius: 2px;
         }
 
-        /* Micro Buttons - Texto más pequeño para evitar desborde */
+        .asset-title {
+            font-size: 9px !important; font-weight: bold; color: #ffffff !important;
+            margin: 8px 0 !important; line-height: 1.2; height: 30px;
+            display: flex; align-items: center; justify-content: center;
+            text-transform: uppercase; overflow: hidden;
+        }
+
+        /* Micro Buttons 2x2 */
         .stButton>button { 
-            width: 100%; font-size: 6.5px !important; height: 18px !important; 
+            width: 100%; font-size: 7px !important; height: 20px !important; 
             padding: 0px !important; background-color: #000000; color: #d4af37; 
             border: 1px solid #444; margin-bottom: 2px; text-transform: uppercase;
         }
@@ -64,9 +68,6 @@ def apply_theme():
         
         /* Sidebar Styles */
         section[data-testid="stSidebar"] { background-color: #000000 !important; border-right: 1px solid #d4af37; }
-        
-        /* Eliminar espacios vacíos de st.image nativo */
-        [data-testid="stImage"] { margin-bottom: 0px !important; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -85,15 +86,22 @@ def create_pdf_certificate(asset_name, asset_id, sovereign, value, a_hash):
     pdf.set_text_color(212, 175, 55)
     pdf.set_font("Courier", "B", 24)
     pdf.cell(190, 40, "DELPHIA NEXUS SYSTEM", 0, 1, "C")
+    pdf.set_font("Courier", "B", 16)
+    pdf.cell(190, 10, "OFFICIAL OWNERSHIP CERTIFICATE", 0, 1, "C")
     pdf.ln(20)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Courier", "", 12)
-    pdf.cell(190, 10, f"ASSET: {asset_name}", 0, 1, "L")
-    pdf.cell(190, 10, f"ID: {asset_id}", 0, 1, "L")
-    pdf.cell(190, 10, f"VALUE: {value} DPX", 0, 1, "L")
+    pdf.cell(190, 10, f"ASSET NAME: {asset_name}", 0, 1, "L")
+    pdf.cell(190, 10, f"ASSET ID: {asset_id}", 0, 1, "L")
+    pdf.cell(190, 10, f"SOVEREIGN OWNER: {sovereign}", 0, 1, "L")
+    pdf.cell(190, 10, f"APPRAISED VALUE: {value} DPX", 0, 1, "L")
     pdf.ln(20)
     pdf.set_text_color(212, 175, 55)
-    pdf.multi_cell(190, 10, f"HASH: {a_hash}", 0, "C")
+    pdf.set_font("Courier", "B", 10)
+    pdf.multi_cell(190, 10, f"VERIFICATION HASH:\n{a_hash}", 0, "C")
+    pdf.ln(40)
+    pdf.set_font("Courier", "I", 8)
+    pdf.cell(190, 10, "This document is an immutable record of the Delphia Truth Ledger.", 0, 1, "C")
     return pdf.output(dest='S').encode('latin-1')
 
 # 2. CONFIGURATION & DATA
@@ -110,7 +118,7 @@ if not st.session_state["authenticated"]:
     st.title("🏛️ NEXUS | SYSTEM ACCESS")
     u = st.selectbox("Select Identity", list(USERS.keys()))
     p = st.text_input("Access Key", type="password")
-    if st.button("SYNCHRONIZE"):
+    if st.button("SYNC"):
         if USERS[u] == p:
             st.session_state["authenticated"], st.session_state["user"] = True, u
             st.rerun()
@@ -132,17 +140,18 @@ else:
     c_head[0].markdown(f"### 🏛️ {user} | {tier_data['Label']}")
     c_head[1].metric("BANK BALANCE", f"{balance:,.0f} DPX")
     c_head[2].metric("TOTAL ASSETS", f"{user_assets['Value'].sum():,.0f} DPX")
-    c_head[3].metric("CREDIT LINE", f"{(user_assets['Value'].sum() * tier_data['LTV']):,.0f} DPX")
+    c_head[3].metric("CREDIT LINE AVAILABLE", f"{(user_assets['Value'].sum() * tier_data['LTV']):,.0f} DPX")
     if c_head[4].button("LOGOUT"):
         st.session_state["authenticated"] = False
         st.rerun()
 
     st.divider()
 
-    # 5. ASSET GRID (6 COLUMNS)
+    # 5. ASSET GRID (6 COLUMNS - STANDARDIZED)
     cols = st.columns(6)
     for i, (_, asset) in enumerate(user_assets.iterrows()):
         with cols[i % 6]:
+            # --- IMAGE PRE-FETCH ---
             folder = asset['Soberano'].replace(" ", "_")
             asset_clean_name = str(asset['Asset']).split('.')[0]
             base_dir = f"Boveda_Activos/{folder}/"
@@ -154,29 +163,30 @@ else:
                         img_to_show = base_dir + f
                         break
 
-            # Card Architecture
+            # Card Start
             st.markdown('<div class="asset-card">', unsafe_allow_html=True)
             
-            # Slot de imagen/icono único para evitar duplicados
+            # Content Architecture
             if img_to_show:
                 st.image(img_to_show, use_column_width=True)
             else:
                 icon = "📄" if ".pdf" in str(asset['Asset']).lower() else "💎"
-                st.markdown(f"<div class='img-slot'><span style='font-size:40px;'>{icon}</span></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='img-container'><span style='font-size:40px;'>{icon}</span></div>", unsafe_allow_html=True)
             
             st.markdown(f"<div class='asset-title'>{asset['Asset']}</div>", unsafe_allow_html=True)
-            st.markdown(f"<p style='color:#d4af37; font-weight:bold; font-size:11px; margin:0;'>{asset['Value']:,.0f} DPX</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='color:#d4af37; font-weight:bold; font-size:11px; margin-bottom:10px;'>{asset['Value']:,.0f} DPX</p>", unsafe_allow_html=True)
             
-            # Botones compactos
-            b_top = st.columns(2)
-            if b_top[0].button("TITLE", key=f"t_{asset['Asset_ID']}"): st.session_state['op'] = ('TITLE', asset)
-            if b_top[1].button("SPLIT", key=f"f_{asset['Asset_ID']}"): st.session_state['op'] = ('SPLIT', asset)
-            b_bot = st.columns(2)
-            if b_bot[0].button("LOAN", key=f"c_{asset['Asset_ID']}"): st.session_state['op'] = ('LOAN', asset)
-            if b_bot[1].button("SELL", key=f"v_{asset['Asset_ID']}"): st.session_state['op'] = ('SELL', asset)
+            # Action Buttons
+            b1, b2 = st.columns(2)
+            if b1.button("TITLE", key=f"t_{asset['Asset_ID']}"): st.session_state['op'] = ('TITLE', asset)
+            if b2.button("SPLIT", key=f"f_{asset['Asset_ID']}"): st.session_state['op'] = ('SPLIT', asset)
+            b3, b4 = st.columns(2)
+            if b3.button("LOAN", key=f"c_{asset['Asset_ID']}"): st.session_state['op'] = ('LOAN', asset)
+            if b4.button("SELL", key=f"v_{asset['Asset_ID']}"): st.session_state['op'] = ('SELL', asset)
+                
             st.markdown('</div>', unsafe_allow_html=True)
 
-    # 6. TRANSACTION TERMINAL
+    # 6. TRANSACTION TERMINAL (SIDEBAR)
     if 'op' in st.session_state:
         mode, data = st.session_state['op']
         with st.sidebar:
@@ -186,20 +196,26 @@ else:
             if mode == 'TITLE':
                 a_hash = generate_asset_hash(data['Asset_ID'], user)
                 st.markdown(f"<div style='border:1px solid #d4af37; padding:10px; background:#111; font-family:monospace; font-size:9px;'>HASH: {a_hash}<br>STATUS: SECURED</div>", unsafe_allow_html=True)
-                if 'FPDF' in globals():
-                    pdf_data = create_pdf_certificate(data['Asset'], data['Asset_ID'], user, data['Value'], a_hash)
-                    st.download_button("DOWNLOAD CERTIFICATE", data=pdf_data, file_name=f"CERT_{data['Asset_ID']}.pdf", mime="application/pdf")
-            elif mode == 'LOAN':
-                max_l = data['Value'] * tier_data['LTV']
-                st.metric("LOAN POTENTIAL", f"{max_l:,.0f} DPX")
-                if st.button("EXECUTE"): st.success("LIQUIDITY SENT")
-            elif mode == 'SPLIT':
-                st.number_input("Units", min_value=2, value=100)
-                if st.button("PROCESS"): st.info("Splitting Asset...")
-            elif mode == 'SELL':
-                st.number_input("Price", value=float(data['Value']))
-                if st.button("LIST"): st.success("Listed on Market")
+                pdf_data = create_pdf_certificate(data['Asset'], data['Asset_ID'], user, data['Value'], a_hash)
+                st.download_button("DOWNLOAD PDF CERTIFICATE", data=pdf_data, file_name=f"CERT_{data['Asset_ID']}.pdf", mime="application/pdf")
 
-            if st.button("CLOSE"):
+            elif mode == 'LOAN':
+                max_loan = data['Value'] * tier_data['LTV']
+                st.metric("MAX LOAN AVAILABLE", f"{max_loan:,.0f} DPX")
+                st.write(f"Tasa: {tier_data['Interest']*100}% Anual")
+                if st.button("EXECUTE INSTANT LOAN"):
+                    st.success("LIQUIDITY INJECTED. ASSET LOCKED.")
+            
+            elif mode == 'SPLIT':
+                u_split = st.number_input("Units to fractionalize", min_value=2, value=100)
+                if st.button("EXECUTE RE-LEDGERING"):
+                    st.info(f"Re-Ledgering into {u_split} sovereign fractions...")
+
+            elif mode == 'SELL':
+                st.number_input("List Price (DPX)", value=float(data['Value']))
+                if st.button("CONFIRM LISTING"):
+                    st.success("Broadcast to Open Market Success.")
+
+            if st.button("CLOSE TERMINAL"):
                 del st.session_state['op']
                 st.rerun()
