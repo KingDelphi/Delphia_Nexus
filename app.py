@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 import os
-from PIL import Image
+import hashlib
 
-# 1. APEX STELLAR AESTHETICS (HIGH DENSITY & HIGH CONTRAST)
+# 1. APEX STELLAR AESTHETICS (6 COLUMNS - BALANCED VIEW)
 def apply_theme():
     st.markdown("""
         <style>
@@ -13,9 +13,10 @@ def apply_theme():
         }
         .stApp { background-color: #0c0e12; color: #d4af37; }
         
-        /* Sidebar/Terminal Styling */
+        /* High Contrast Terminal */
         section[data-testid="stSidebar"] { background-color: #000000 !important; border-right: 1px solid #d4af37; }
-        section[data-testid="stSidebar"] .stMarkdown, section[data-testid="stSidebar"] p, section[data-testid="stSidebar"] h3 {
+        section[data-testid="stSidebar"] .stMarkdown, section[data-testid="stSidebar"] p, 
+        section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] label {
             color: #ffffff !important; 
         }
         section[data-testid="stSidebar"] b, section[data-testid="stSidebar"] strong { color: #d4af37 !important; }
@@ -25,38 +26,38 @@ def apply_theme():
             background-color: #161b22; border: 1px solid #d4af37; 
             padding: 5px 10px !important; border-radius: 3px;
         }
-        div[data-testid="stMetricLabel"] > div { font-size: 10px !important; color: #8b949e !important; }
-        div[data-testid="stMetricValue"] > div { font-size: 14px !important; color: #d4af37 !important; }
 
-        /* Asset Card Architecture */
+        /* Squared Card Architecture */
         .asset-card { 
             background-color: #1c2128; border: 1px solid #30363d; 
-            padding: 8px; border-radius: 4px; margin-bottom: 5px;
-            text-align: center; min-height: 240px;
+            padding: 10px; border-radius: 4px; margin-bottom: 8px;
+            text-align: center; min-height: 260px;
         }
         .asset-card:hover { border: 1px solid #d4af37; background-color: #21262d; }
         
         .asset-title {
-            font-size: 10px !important; font-weight: bold; color: #ffffff !important;
-            margin: 5px 0 !important; line-height: 1.1; height: 35px;
+            font-size: 9px !important; font-weight: bold; color: #ffffff !important;
+            margin: 5px 0 !important; line-height: 1.2; height: 40px;
             display: flex; align-items: center; justify-content: center;
+            text-transform: uppercase;
         }
 
-        /* Micro Buttons 2x2 */
+        /* Precise 2x2 Buttons */
         .stButton>button { 
-            width: 100%; font-size: 8px !important; height: 20px !important; 
+            width: 100%; font-size: 7.5px !important; height: 22px !important; 
             padding: 0px !important; background-color: #000000; color: #d4af37; 
             border: 1px solid #444; margin-bottom: 2px;
         }
-        .stButton>button:hover { border-color: #d4af37; color: #fff; }
-        
-        h1, h2, h3 { font-family: 'Courier New', monospace; }
-        .small-id { font-size: 8px; color: #8b949e; }
+        .stButton>button:hover { border-color: #d4af37; color: #fff; background-color: #d4af3722; }
         </style>
     """, unsafe_allow_html=True)
 
 st.set_page_config(page_title="NEXUS | APEX SYSTEM", page_icon="🏛️", layout="wide")
 apply_theme()
+
+# HELPER: Generate Security Hash
+def generate_asset_hash(asset_id, sovereign):
+    return hashlib.sha256(f"{asset_id}-{sovereign}-2026".encode()).hexdigest()[:16].upper()
 
 # 2. CONFIGURATION
 TIERS = {
@@ -64,7 +65,7 @@ TIERS = {
     "Delphi": {"LTV": 0.90, "Interest": 0.005, "Label": "TIER I - SOVEREIGN"},
     "Matriarca": {"LTV": 0.70, "Interest": 0.025, "Label": "TIER II - NOBLE"}
 }
-USERS = {"Arquitecto": "ROOT_777", "Delphi": "OMEGA_999"}
+USERS = {"Arquitecto": "ROOT_777", "Delphi": "OMEGA_999", "Matriarca": "M_2026"}
 
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
@@ -95,74 +96,99 @@ else:
     c_head[0].markdown(f"### 🏛️ {user} | {tier_data['Label']}")
     c_head[1].metric("BANK BALANCE", f"{balance:,.0f} DPX")
     c_head[2].metric("TOTAL ASSETS", f"{user_assets['Value'].sum():,.0f} DPX")
-    c_head[3].metric("CREDIT LINE", f"{(user_assets['Value'].sum() * tier_data['LTV']):,.0f} DPX")
+    c_head[3].metric("CREDIT LINE AVAILABLE", f"{(user_assets['Value'].sum() * tier_data['LTV']):,.0f} DPX")
     if c_head[4].button("LOGOUT"):
         st.session_state["authenticated"] = False
         st.rerun()
 
     st.divider()
 
-    # 5. ASSET GRID (8 COLUMNS)
-    cols = st.columns(8)
+    # 5. ASSET GRID (6 COLUMNS - MORE SQUARE)
+    cols = st.columns(6)
     for i, (_, asset) in enumerate(user_assets.iterrows()):
-        with cols[i % 8]:
+        with cols[i % 6]:
             st.markdown('<div class="asset-card">', unsafe_allow_html=True)
             
-            # --- IMAGE LOGIC (SECURE) ---
+            # --- ROBUST IMAGE ENGINE (v2.0) ---
             folder = asset['Soberano'].replace(" ", "_")
-            asset_name = str(asset['Asset'])
-            img_path = f"Boveda_Activos/{folder}/{asset_name}"
+            asset_clean_name = str(asset['Asset']).split('.')[0] # Quitar extensión del nombre si existe
+            base_dir = f"Boveda_Activos/{folder}/"
+            img_to_show = None
             
-            # Solo permitir extensiones de imagen conocidas
-            valid_extensions = ('.jpg', '.jpeg', '.png', '.webp')
+            if os.path.exists(base_dir):
+                files_in_folder = os.listdir(base_dir)
+                for f in files_in_folder:
+                    if f.startswith(asset_clean_name) and f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
+                        img_to_show = base_dir + f
+                        break
             
-            if img_path.lower().endswith(valid_extensions) and os.path.exists(img_path):
-                try:
-                    st.image(img_path, use_column_width=True)
-                except Exception:
-                    st.markdown("<div style='height:60px; font-size:24px;'>⚠️</div>", unsafe_allow_html=True)
+            if img_to_show:
+                st.image(img_to_show, use_column_width=True)
             else:
-                icon = "📄" if ".pdf" in asset_name.lower() else "💎"
-                st.markdown(f"<div style='height:60px; display:grid; place-items:center; font-size:24px;'>{icon}</div>", unsafe_allow_html=True)
+                icon = "📄" if ".pdf" in str(asset['Asset']).lower() else "💎"
+                st.markdown(f"<div style='height:80px; display:grid; place-items:center; font-size:30px;'>{icon}</div>", unsafe_allow_html=True)
             
-            st.markdown(f"<div class='asset-title'>{asset_name}</div>", unsafe_allow_html=True)
-            st.markdown(f"<p class='small-id'>{asset['Asset_ID']}</p>", unsafe_allow_html=True)
-            st.markdown(f"<p style='color:#d4af37; font-weight:bold;'>{asset['Value']:,.0f} DPX</p>", unsafe_allow_html=True)
+            st.markdown(f"<div class='asset-title'>{asset['Asset']}</div>", unsafe_allow_html=True)
+            st.markdown(f"<p style='color:#d4af37; font-weight:bold; font-size:12px;'>{asset['Value']:,.0f} DPX</p>", unsafe_allow_html=True)
             
-            # Action Buttons 2x2
+            # 2x2 Logic
             b1, b2 = st.columns(2)
             if b1.button("TITLE", key=f"t_{asset['Asset_ID']}"):
-                st.session_state['op'] = ('OWNERSHIP TITLE', asset_name, asset['Asset_ID'])
+                st.session_state['op'] = ('TITLE', asset)
             if b2.button("SPLIT", key=f"f_{asset['Asset_ID']}"):
-                st.session_state['op'] = ('FRACTIONAL SPLIT', asset_name, asset['Asset_ID'])
+                st.session_state['op'] = ('SPLIT', asset)
                 
             b3, b4 = st.columns(2)
             if b3.button("LOAN", key=f"c_{asset['Asset_ID']}"):
-                st.session_state['op'] = ('CREDIT LINE', asset_name, asset['Asset_ID'])
+                st.session_state['op'] = ('LOAN', asset)
             if b4.button("SELL", key=f"v_{asset['Asset_ID']}"):
-                st.session_state['op'] = ('MARKET ORDER', asset_name, asset['Asset_ID'])
+                st.session_state['op'] = ('SELL', asset)
                 
             st.markdown('</div>', unsafe_allow_html=True)
 
     # 6. TRANSACTION TERMINAL (SIDEBAR)
     if 'op' in st.session_state:
-        op_type, name, aid = st.session_state['op']
+        mode, data = st.session_state['op']
         with st.sidebar:
-            st.markdown(f"### ⚡ TERMINAL: {op_type}")
-            st.write(f"**Asset:** {name}")
-            st.write(f"**ID:** {aid}")
-            st.divider()
+            st.markdown(f"### ⚡ TERMINAL: {mode}")
+            st.write(f"**Asset:** {data['Asset']}")
+            st.write(f"**Global ID:** {data['Asset_ID']}")
             
-            if op_type == 'MARKET ORDER':
-                price = st.number_input("Listing Price (DPX)", value=1000.0)
-                if st.button("EXECUTE SELL ORDER"):
-                    st.success("Order live in Open Market.")
-            elif op_type == 'FRACTIONAL SPLIT':
-                st.number_input("Units", min_value=2, value=100)
-                st.button("EXECUTE SPLIT")
-            elif op_type == 'CREDIT LINE':
+            if mode == 'TITLE':
+                a_hash = generate_asset_hash(data['Asset_ID'], user)
+                st.markdown(f"""
+                <div style='border:1px solid #d4af37; padding:10px; background:#111;'>
+                    <p style='color:#d4af37; font-size:10px;'>OFFICIAL OWNERSHIP TITLE</p>
+                    <p style='font-size:8px;'>VERIFICATION HASH:<br><b>{a_hash}</b></p>
+                    <p style='font-size:8px;'>STATUS: SECURED</p>
+                </div>
+                """, unsafe_allow_html=True)
+                st.button("DOWNLOAD PDF CERTIFICATE")
+
+            elif mode == 'SELL':
+                # El precio sugerido es el valor actual en el ledger
+                price = st.number_input("Market Price (DPX)", value=float(data['Value']))
+                st.write("This asset will be listed in the Global Market.")
+                if st.button("CONFIRM LISTING"):
+                    st.success("Order broadcasted to Market core.")
+            
+            elif mode == 'LOAN':
+                max_borrow = data['Value'] * tier_data['LTV']
+                st.write(f"---")
                 st.write(f"**Tier:** {tier_data['Label']}")
-                st.button("INJECT LIQUIDITY")
+                st.write(f"**Max Loan (LTV {tier_data['LTV']*100}%):**")
+                st.markdown(f"## {max_borrow:,.2f} DPX")
+                st.write(f"**Annual Interest Rate:** {tier_data['Interest']*100}%")
+                st.write(f"**Status:** Unlocked")
+                if st.button("EXECUTE INSTANT LOAN"):
+                    st.warning("Asset will be LOCKED as collateral.")
+
+            elif mode == 'SPLIT':
+                st.write("Divide this asset into smaller sovereign units.")
+                units = st.number_input("Total Units", min_value=2, value=100)
+                st.write(f"New unit value: {data['Value']/units:,.2f} DPX")
+                if st.button("EXECUTE RE-LEDGERING"):
+                    st.info("Rewriting Truth Ledger...")
 
             if st.button("CLOSE TERMINAL"):
                 del st.session_state['op']
