@@ -1,23 +1,39 @@
 import streamlit as st
 import pandas as pd
 
-# 1. ESTÉTICA SOBERANA (CSS)
+# 1. ESTÉTICA SOBERANA (CSS CORREGIDO)
 def apply_theme():
     st.markdown("""
         <style>
-        .main { background-color: #0e1117; color: #d4af37; }
-        .stMetric { background-color: #1c1c1c; padding: 15px; border-radius: 10px; border: 1px solid #d4af37; }
-        [data-testid="stMetricValue"] { color: #d4af37; }
-        .asset-card { 
-            background-color: #161b22; 
-            border: 1px solid #30363d; 
-            padding: 20px; 
-            border-radius: 10px; 
-            margin-bottom: 10px;
+        /* Fondo y texto general */
+        .stApp { background-color: #0e1117; color: #d4af37; }
+        
+        /* Sidebar oscura */
+        section[data-testid="stSidebar"] { background-color: #000000; border-right: 1px solid #d4af37; }
+        
+        /* Métricas con estilo de Terminal Financiera */
+        div[data-testid="stMetric"] {
+            background-color: #161b22;
+            border: 1px solid #d4af37;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 15px rgba(212, 175, 55, 0.1);
         }
-        h1, h2, h3 { color: #d4af37 !important; }
+        
+        /* Cards de Activos */
+        .asset-card { 
+            background-color: #1c2128; 
+            border-left: 5px solid #d4af37; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin-bottom: 15px;
+            transition: 0.3s;
+        }
+        .asset-card:hover { background-color: #21262d; border-left: 8px solid #ffd700; }
+        
+        h1, h2, h3 { font-family: 'Courier New', Courier, monospace; color: #d4af37 !important; }
         </style>
-    """, unsafe_allow_stdio=True)
+    """, unsafe_allow_html=True) # <-- AQUÍ ESTABA EL ERROR
 
 st.set_page_config(page_title="NEXUS | Delphium", page_icon="🏛️", layout="wide")
 apply_theme()
