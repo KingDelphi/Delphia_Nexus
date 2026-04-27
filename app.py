@@ -36,6 +36,11 @@ def check_login():
 def load_data():
     ledger = pd.read_csv("Truth_Ledger_Master.csv")
     accounts = pd.read_csv("Delphia_Bank_Accounts.csv")
+    
+    # LIMPIEZA SOBERANA: Asegurar que Valor sea numérico
+    if ledger['Valor'].dtype == object:
+        ledger['Valor'] = ledger['Valor'].replace('[\$,]', '', regex=True).astype(float)
+    
     return ledger, accounts
 
 # 4. CUERPO PRINCIPAL DEL DASHBOARD
