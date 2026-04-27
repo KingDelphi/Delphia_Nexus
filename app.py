@@ -1,79 +1,83 @@
 import streamlit as st
 import pandas as pd
-import os
 
-# 1. CONFIGURACIÓN DE LA PÁGINA
+# 1. ESTÉTICA SOBERANA (CSS)
+def apply_theme():
+    st.markdown("""
+        <style>
+        .main { background-color: #0e1117; color: #d4af37; }
+        .stMetric { background-color: #1c1c1c; padding: 15px; border-radius: 10px; border: 1px solid #d4af37; }
+        [data-testid="stMetricValue"] { color: #d4af37; }
+        .asset-card { 
+            background-color: #161b22; 
+            border: 1px solid #30363d; 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin-bottom: 10px;
+        }
+        h1, h2, h3 { color: #d4af37 !important; }
+        </style>
+    """, unsafe_allow_stdio=True)
+
 st.set_page_config(page_title="NEXUS | Delphium", page_icon="🏛️", layout="wide")
+apply_theme()
 
-# 2. SISTEMA DE LOGIN (Base Provisoria)
-USERS = {
-    "Arquitecto": "ROOT_777",
-    "Delphi": "OMEGA_999",
-    "Inversor_01": "INV_001",
-    "Inversor_02": "INV_002"
-}
+# 2. LOGIN
+USERS = {"Arquitecto": "ROOT_777", "Delphi": "OMEGA_999", "Inversor_01": "INV_001"}
 
-def check_login():
-    if "authenticated" not in st.session_state:
-        st.session_state["authenticated"] = False
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
 
-    if not st.session_state["authenticated"]:
-        st.title("🏛️ NEXUS V7.5 - Acceso Soberano")
-        user = st.selectbox("Seleccione su identidad", list(USERS.keys()))
-        password = st.text_input("Clave de Acceso", type="password")
-        if st.button("Entrar al Reino"):
-            if USERS[user] == password:
-                st.session_state["authenticated"] = True
-                st.session_state["user"] = user
-                st.rerun()
-            else:
-                st.error("Acceso denegado. Verifique su clave.")
-        return False
-    return True
-
-# 3. CARGA DE DATOS (Lectura de CSVs)
-@st.cache_data
-def load_data():
+if not st.session_state["authenticated"]:
+    st.title("🏛️ NEXUS | Acceso")
+    u = st.selectbox("Identidad", list(USERS.keys()))
+    p = st.text_input("Clave", type="password")
+    if st.button("Sincronizar"):
+        if USERS[u] == p:
+            st.session_state["authenticated"], st.session_state["user"] = True, u
+            st.rerun()
+else:
+    # 3. CARGA Y FILTRADO
     ledger = pd.read_csv("Truth_Ledger_Master.csv")
     accounts = pd.read_csv("Delphia_Bank_Accounts.csv")
     
-    # 1. Limpiar espacios y asegurar que sea string para procesar
-    ledger['Valor'] = ledger['Valor'].astype(str).str.strip()
+    # Limpieza de datos
+    ledger['Valor'] = pd.to_numeric(ledger['Valor'].astype(str).replace('[\$,]', '', regex=True), errors='coerce').fillna(0)
     
-    # 2. Quitar símbolos de moneda y comas
-    ledger['Valor'] = ledger['Valor'].replace('[\$,]', '', regex=True)
-    
-    # 3. Convertir a número (si hay algo que no sea número, lo pone como 0)
-    ledger['Valor'] = pd.to_numeric(ledger['Valor'], errors='coerce').fillna(0)
-    
-    return ledger, accounts
+    user = st.session_state["user"]
+    user_assets = ledger[ledger['Soberano'] == user]
+    user_balance = accounts[accounts['Soberano'] == user]['Balance_DPX'].values[0] if user in accounts['Soberano'].values else 0
 
-# 4. CUERPO PRINCIPAL DEL DASHBOARD
-if check_login():
-    st.sidebar.title(f"Soberano: {st.session_state['user']}")
+    # 4. INTERFAZ
+    st.sidebar.title(f"Soberano: {user}")
     if st.sidebar.button("Cerrar Sesión"):
         st.session_state["authenticated"] = False
         st.rerun()
 
-    ledger, accounts = load_data()
+    st.title("🏛️ Mi Bóveda Soberana")
     
-    st.title(f"🏛️ NEXUS Dashboard - Apex View")
-    st.write(f"Bienvenido, {st.session_state['user']}. El estado del Reino está actualizado.")
+    # Métricas de Wallet
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Balance en Banco", f"{user_balance:,.2f} DPX")
+    c2.metric("Valor en Activos", f"{user_assets['Valor'].sum():,.2f} DPX")
+    c3.metric("Capacidad Crediticia", f"{(user_assets['Valor'].sum() * 0.5):,.2f} DPX") # Ejemplo 50% LTV
 
-    # MÉTRICAS RÁPIDAS
-    col1, col2, col3 = st.columns(3)
-    total_market_cap = ledger['Valor'].sum()
-    total_assets = len(ledger)
-    
-    col1.metric("Market Cap (DPX)", f"{total_market_cap:,.0f}")
-    col2.metric("Activos en Bóveda", f"{total_assets}")
-    col3.metric("Estatus del Sistema", "ONLINE", delta="Sincronizado")
+    st.divider()
 
-    # VISTA DE TABLAS
-    st.subheader("📜 Master Ledger (Global)")
-    st.dataframe(ledger, use_container_width=True)
-
-    st.subheader("💰 Cuentas Bancarias del Reino")
-    st.table(accounts)
-
-    st.info("Nota: Esta es la versión Cloud V1. Los permisos de transferencia se activarán en el siguiente Vector.")
+    # 5. DESPLIEGUE DE ASSETS (No tablas, sino visualización)
+    st.subheader("💎 Activos en Posesión")
+    if user_assets.empty:
+        st.warning("No se detectan activos en esta bóveda.")
+    else:
+        for _, asset in user_assets.iterrows():
+            with st.container():
+                st.markdown(f"""
+                <div class="asset-card">
+                    <h3 style='margin:0;'>{asset['Activo']}</h3>
+                    <p style='color: #8b949e;'>ID: {asset['ID_Unico']} | Categoría: {asset['Categoria']}</p>
+                    <p style='font-size: 20px; color: #d4af37;'>Valor: {asset['Valor']:,.2f} DPX</p>
+                </div>
+                """, unsafe_allow_html=True)
+                col_btn1, col_btn2 = st.columns([1, 4])
+                if col_btn1.button("Ver Título", key=asset['ID_Unico']):
+                    st.info(f"Generando certificado para {asset['ID_Unico']}...")
