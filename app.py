@@ -37,9 +37,14 @@ def load_data():
     ledger = pd.read_csv("Truth_Ledger_Master.csv")
     accounts = pd.read_csv("Delphia_Bank_Accounts.csv")
     
-    # LIMPIEZA SOBERANA: Asegurar que Valor sea numérico
-    if ledger['Valor'].dtype == object:
-        ledger['Valor'] = ledger['Valor'].replace('[\$,]', '', regex=True).astype(float)
+    # 1. Limpiar espacios y asegurar que sea string para procesar
+    ledger['Valor'] = ledger['Valor'].astype(str).str.strip()
+    
+    # 2. Quitar símbolos de moneda y comas
+    ledger['Valor'] = ledger['Valor'].replace('[\$,]', '', regex=True)
+    
+    # 3. Convertir a número (si hay algo que no sea número, lo pone como 0)
+    ledger['Valor'] = pd.to_numeric(ledger['Valor'], errors='coerce').fillna(0)
     
     return ledger, accounts
 
