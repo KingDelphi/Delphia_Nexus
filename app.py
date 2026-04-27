@@ -1,17 +1,19 @@
 import streamlit as st
 import pandas as pd
+import os
 
 # 1. ESTÉTICA SOBERANA
 def apply_theme():
     st.markdown("""
         <style>
-        .stApp { background-color: #0e1117; color: #d4af37; }
+        .stApp { background-color: #0c0e12; color: #d4af37; }
         section[data-testid="stSidebar"] { background-color: #000000; border-right: 1px solid #d4af37; }
         div[data-testid="stMetric"] { background-color: #161b22; border: 1px solid #d4af37; padding: 15px; border-radius: 5px; }
         .asset-card { 
             background-color: #1c2128; border-left: 5px solid #d4af37; 
-            padding: 20px; border-radius: 8px; margin-bottom: 15px;
+            padding: 15px; border-radius: 8px; margin-bottom: 20px;
         }
+        .img-container { border: 1px solid #30363d; border-radius: 5px; margin-bottom: 10px; overflow: hidden; }
         h1, h2, h3 { font-family: 'Courier New', Courier, monospace; color: #d4af37 !important; }
         </style>
     """, unsafe_allow_html=True)
@@ -19,12 +21,8 @@ def apply_theme():
 st.set_page_config(page_title="NEXUS | Delphium", page_icon="🏛️", layout="wide")
 apply_theme()
 
-# 2. LOGIN Y PERMISOS
-USERS = {
-    "Arquitecto": "ROOT_777",
-    "Delphi": "OMEGA_999",
-    "Inversor_01": "INV_001"
-}
+# 2. LOGIN SOBERANO
+USERS = {"Arquitecto": "ROOT_777", "Delphi": "OMEGA_999"}
 
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
@@ -38,63 +36,69 @@ if not st.session_state["authenticated"]:
             st.session_state["authenticated"], st.session_state["user"] = True, u
             st.rerun()
 else:
-    # 3. CARGA Y LÓGICA DE PODER
+    # 3. CARGA DE DATOS Y NORMALIZACIÓN
     ledger = pd.read_csv("Truth_Ledger_Master.csv")
     accounts = pd.read_csv("Delphia_Bank_Accounts.csv")
     
-    # Limpieza de valores
+    # Limpieza: Convertimos "Nombre" (CSV) a "Activo" (App) para evitar KeyErrors
+    ledger = ledger.rename(columns={'Nombre': 'Activo'})
     ledger['Valor'] = pd.to_numeric(ledger['Valor'].astype(str).replace('[\$,]', '', regex=True), errors='coerce').fillna(0)
     
     user = st.session_state["user"]
     
-    # --- FILTRO SEGÚN RANGO ---
+    # 4. LÓGICA DE PODER (VISTAS)
     if user in ["Arquitecto", "Delphi"]:
-        # Acceso Total: Ven todo el Reino
-        user_assets = ledger 
+        user_assets = ledger
         display_title = "🏛️ Master Ledger - Vista Global"
     else:
-        # Acceso Restringido: Solo sus activos
         user_assets = ledger[ledger['Soberano'] == user]
         display_title = "🏛️ Mi Bóveda Personal"
 
-    # Obtener balance de la cuenta
-    user_balance_row = accounts[accounts['Soberano'] == user]
-    user_balance = user_balance_row['Balance_DPX'].values[0] if not user_balance_row.empty else 0
-
-    # 4. INTERFAZ
-    st.sidebar.title(f"Soberano: {user}")
-    if st.sidebar.button("Cerrar Sesión"):
-        st.session_state["authenticated"] = False
-        st.rerun()
+    # Datos específicos que me pasaste
+    row_acc = accounts[accounts['Soberano'].str.contains(user, na=False)]
+    balance = row_acc['Saldo_DPX'].values[0] if not row_acc.empty else 0.0
 
     st.title(display_title)
     
-    # Métricas
+    # MÉTRICAS SOBERANAS
     c1, c2, c3 = st.columns(3)
-    c1.metric("Balance Disponible", f"{user_balance:,.2f} DPX")
-    c2.metric("Valor del Portafolio", f"{user_assets['Valor'].sum():,.2f} DPX")
-    c3.metric("Capacidad de Crédito", f"{(user_assets['Valor'].sum() * 0.4):,.2f} DPX")
+    c1.metric("Balance Disponible", f"{balance:,.2f} DPX")
+    c2.metric("Activos Bajo Control", f"{len(user_assets)} Unidades")
+    c3.metric("Net Worth (Poder)", f"{(balance + user_assets['Valor'].sum()):,.2f} DPX")
 
     st.divider()
 
-    # 5. LISTADO DE ACTIVOS
-    st.subheader("💎 Activos Identificados")
-    if user_assets.empty:
-        st.warning(f"No se encontraron activos vinculados a {user}. Verifique el Ledger.")
-    else:
-        for _, asset in user_assets.iterrows():
+    # 5. GRID DE ACTIVOS (RESTAURACIÓN VISUAL)
+    st.subheader("💎 Galería de Activos")
+    
+    # Crear columnas para el grid (3 activos por fila)
+    cols = st.columns(3)
+    
+    for i, (_, asset) in enumerate(user_assets.iterrows()):
+        with cols[i % 3]:
             with st.container():
-                # Nota: Aquí después pondremos la imagen del activo
+                # LÓGICA DE IMAGEN: Buscamos en las carpetas que mencionaste
+                soberano_folder = asset['Soberano'].replace("Boveda_", "Boveda_Activos/Boveda_")
+                # Intentamos encontrar el archivo por ID o Nombre
+                img_path = f"{soberano_folder}/{asset['Activo']}"
+                
+                st.markdown('<div class="asset-card">', unsafe_allow_html=True)
+                
+                # Mostrar imagen si existe, si no, un placeholder negro
+                if os.path.exists(img_path) and img_path.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    st.image(img_path, use_container_width=True)
+                else:
+                    st.markdown('<div style="height:150px; background:#000; border:1px solid #333; display:grid; place-items:center;">[Documento/No Preview]</div>', unsafe_allow_html=True)
+                
                 st.markdown(f"""
-                <div class="asset-card">
-                    <h3 style='margin:0;'>{asset['Activo']}</h3>
-                    <p style='color: #8b949e; margin: 5px 0;'>ID: {asset['ID_Unico']} | Soberano: {asset['Soberano']}</p>
-                    <p style='font-size: 18px; color: #d4af37;'>Valoración: {asset['Valor']:,.2f} DPX</p>
-                </div>
+                    <h3 style='margin-bottom:5px; font-size:18px;'>{asset['Activo']}</h3>
+                    <p style='color: #8b949e; font-size:12px;'>Soberano: {asset['Soberano']}</p>
+                    <p style='color: #d4af37; font-size:20px; font-weight:bold;'>{asset['Valor']:,.2f} DPX</p>
                 """, unsafe_allow_html=True)
                 
-                # Acciones rápidas por activo
-                col_a, col_b, col_c = st.columns([1, 1, 3])
-                col_a.button("Ver Título", key=f"title_{asset['ID_Unico']}")
-                if user in ["Arquitecto", "Delphi"]:
-                    col_b.button("Editar", key=f"edit_{asset['ID_Unico']}")
+                # Botones de Acción
+                btn_col1, btn_col2 = st.columns(2)
+                btn_col1.button("📜 Título", key=f"t_{asset['Asset_ID']}")
+                btn_col2.button("💸 Vender", key=f"v_{asset['Asset_ID']}")
+                
+                st.markdown('</div>', unsafe_allow_html=True)
