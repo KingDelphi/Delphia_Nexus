@@ -4,6 +4,7 @@ import os
 import hashlib
 from fpdf import FPDF
 import io
+import base64
 
 # =============================================
 # 1. CONFIGURACIÓN INICIAL Y TEMA VISUAL (APEX STELLAR AESTHETICS)
@@ -22,46 +23,37 @@ def apply_theme():
             color: #d4af37; 
         }
 
-        /* FIX: ELIMINAR CAJA VACÍA Y GAPS DE STREAMLIT EN IMÁGENES */
-        [data-testid="stImage"] {
-            margin: 0 !important;
-            padding: 0 !important;
-            line-height: 0 !important;
+        /* FIX HEADER METRICS: BLANCO Y DORADO */
+        [data-testid="stMetricValue"] {
+            color: #d4af37 !important;
+            font-family: 'Cinzel', serif !important;
+            font-size: 1.8rem !important;
         }
-        
-        div[data-testid="stVerticalBlock"] > div:has([data-testid="stImage"]) {
+        [data-testid="stMetricLabel"] p {
+            color: #ffffff !important;
+            font-family: 'Rajdhani', sans-serif !important;
+            letter-spacing: 1.5px !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+        }
+
+        /* =============================================
+           FIX PRINCIPAL: ELIMINAR CAJAS VACÍAS (FRAMES)
+           ============================================= */
+        /* Eliminamos el espacio entre elementos de Streamlit dentro de las columnas */
+        [data-testid="stVerticalBlock"] > div {
             gap: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
         }
-        
-        .element-container:has([data-testid="stImage"]) {
+
+        .element-container {
             margin-bottom: 0 !important;
-            padding: 0 !important;
-        }
-        
-        [data-testid="stImage"] img {
-            margin-top: 0 !important;
-            padding-top: 0 !important;
-            display: block !important;
-            height: 180px !important;
-            width: 100% !important;
-            object-fit: cover !important;
-            border-radius: 2px;
         }
 
-        /* METRIC STYLING: LABELS BLANCOS, VALORES DORADOS */
-        [data-testid="stMetricLabel"] p {
-            color: #ffffff !important;
-            font-family: 'Rajdhani', sans-serif !important;
-            letter-spacing: 1px !important;
-            font-size: 10px !important;
-            text-transform: uppercase;
-        }
-        [data-testid="stMetricValue"] > div {
-            color: #d4af37 !important;
-            font-family: 'Cinzel', serif !important;
-            font-weight: 700 !important;
+        /* Ocultar contenedores de markdown vacíos que generan las cajas fantasma */
+        .element-container:has(div:empty) {
+            display: none !important;
         }
 
         /* Asset Card Architecture */
@@ -70,7 +62,7 @@ def apply_theme():
             border: 1px solid #30363d;
             padding: 8px; 
             border-radius: 4px;
-            height: 380px;
+            height: 385px;
             display: flex; 
             flex-direction: column; 
             justify-content: space-between;
@@ -78,11 +70,12 @@ def apply_theme():
             margin-bottom: 15px;
             overflow: hidden;
             position: relative;
+            z-index: 1;
         }
         .asset-card:hover { 
             border: 1px solid #d4af37; 
             background-color: #21262d; 
-            box-shadow: 0 0 15px rgba(212, 175, 55, 0.1);
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.1);
         }
 
         .img-container {
@@ -95,6 +88,15 @@ def apply_theme():
             align-items: center; 
             justify-content: center;
             margin-bottom: 8px;
+        }
+        
+        [data-testid="stImage"] img {
+            height: 180px !important;
+            width: 100% !important;
+            object-fit: cover !important;
+            border-radius: 2px;
+            display: block !important;
+            margin-top: 0 !important;
         }
 
         .asset-title {
@@ -134,11 +136,17 @@ def apply_theme():
             background-color: #d4af3722; 
         }
 
-        /* Sidebar Terminal */
+        /* Terminal Close Button (Upper Right) */
+        .close-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: -35px;
+        }
+
+        /* Sidebar Terminal Styles */
         section[data-testid="stSidebar"] {
             background-color: #000000 !important;
-            border-right: 1px solid #d4af37;
-            z-index: 100 !important;
+            border-left: 1px solid #d4af37;
         }
         section[data-testid="stSidebar"] h3 {
             font-family: 'Cinzel', serif !important;
@@ -177,27 +185,6 @@ def apply_theme():
             margin: 10px 0;
             opacity: 0.4;
         }
-        .warn-box {
-            border: 1px solid #ff6b35;
-            padding: 8px 12px;
-            background: #1a0a00;
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 9px;
-            color: #ff9966;
-            border-radius: 3px;
-            letter-spacing: 1px;
-            line-height: 1.6;
-        }
-        .success-box {
-            border: 1px solid #39d353;
-            padding: 8px 12px;
-            background: #0a1a0a;
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 9px;
-            color: #39d353;
-            border-radius: 3px;
-            letter-spacing: 1px;
-        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -213,7 +200,6 @@ def generate_asset_hash(asset_id, sovereign):
 def create_pdf_certificate(asset_name, asset_id, sovereign, value, a_hash):
     pdf = FPDF()
     pdf.add_page()
-    # Fondo y bordes ornamentales
     pdf.set_fill_color(5, 5, 10)
     pdf.rect(0, 0, 210, 297, 'F')
     pdf.set_draw_color(212, 175, 55)
@@ -225,7 +211,6 @@ def create_pdf_certificate(asset_name, asset_id, sovereign, value, a_hash):
     pdf.rect(12, 12, 186, 0.5, 'F')
     pdf.rect(12, 285, 186, 0.5, 'F')
 
-    # Header
     pdf.set_text_color(212, 175, 55)
     pdf.set_font("Courier", "B", 7)
     pdf.set_xy(12, 18)
@@ -234,6 +219,7 @@ def create_pdf_certificate(asset_name, asset_id, sovereign, value, a_hash):
 
     pdf.set_xy(12, 30)
     pdf.set_font("Courier", "B", 20)
+    pdf.set_text_color(212, 175, 55)
     pdf.cell(186, 12, "DELPHIA NEXUS", 0, 1, "C")
     pdf.set_xy(12, 42)
     pdf.set_font("Courier", "B", 9)
@@ -246,7 +232,6 @@ def create_pdf_certificate(asset_name, asset_id, sovereign, value, a_hash):
     pdf.set_text_color(212, 175, 55)
     pdf.cell(40, 14, "◈", 0, 1, "C")
 
-    # Fields
     fields = [
         ("ASSET DESIGNATION", str(asset_name).upper()),
         ("REGISTRY CODE", str(asset_id).upper()),
@@ -270,7 +255,6 @@ def create_pdf_certificate(asset_name, asset_id, sovereign, value, a_hash):
         pdf.line(25, y_start + 11, 185, y_start + 11)
         y_start += 15
 
-    # Hash Box
     pdf.set_xy(12, y_start + 5)
     pdf.set_fill_color(15, 12, 5)
     pdf.rect(18, y_start + 4, 174, 22, 'F')
@@ -286,7 +270,6 @@ def create_pdf_certificate(asset_name, asset_id, sovereign, value, a_hash):
     pdf.set_text_color(212, 175, 55)
     pdf.cell(174, 8, a_hash, 0, 1, "C")
 
-    # Footer
     pdf.line(20, y_start + 32, 190, y_start + 32)
     pdf.set_xy(12, y_start + 34)
     pdf.set_font("Courier", "I", 6)
@@ -336,30 +319,26 @@ if not st.session_state["authenticated"]:
     st.stop()
 
 # =============================================
-# 5. CARGA DE DATOS (TRUTH LEDGER)
+# 5. CARGA DE DATOS
 # =============================================
-try:
-    ledger = pd.read_csv("Truth_Ledger_Master.csv").rename(columns={'Nombre': 'Asset'})
-    accounts = pd.read_csv("Delphia_Bank_Accounts.csv")
+ledger = pd.read_csv("Truth_Ledger_Master.csv").rename(columns={'Nombre': 'Asset'})
+accounts = pd.read_csv("Delphia_Bank_Accounts.csv")
 
-    ledger['Value'] = pd.to_numeric(
-        ledger['Valor'].astype(str).replace('[\$,]', '', regex=True), 
-        errors='coerce'
-    ).fillna(0)
+ledger['Value'] = pd.to_numeric(
+    ledger['Valor'].astype(str).replace('[\$,]', '', regex=True), 
+    errors='coerce'
+).fillna(0)
 
-    user = st.session_state["user"]
-    tier_data = TIERS.get(user, TIERS["Arquitecto"])
+user = st.session_state["user"]
+tier_data = TIERS.get(user, TIERS["Arquitecto"])
 
-    user_assets = (
-        ledger if user in ["Arquitecto", "Delphi"]
-        else ledger[ledger['Soberano'].str.contains(user, na=False)]
-    )
-except Exception as e:
-    st.error(f"Ledger Sync Error: {e}")
-    st.stop()
+user_assets = (
+    ledger if user in ["Arquitecto", "Delphi"]
+    else ledger[ledger['Soberano'].str.contains(user, na=False)]
+)
 
 # =============================================
-# 6. HEADER / DASHBOARD METRICS
+# 6. HEADER / DASHBOARD (COLORES CORREGIDOS)
 # =============================================
 acc_row = accounts[accounts['Soberano'].str.contains(user, na=False)]
 balance = acc_row['Saldo_DPX'].values[0] if not acc_row.empty else 0.0
@@ -377,7 +356,7 @@ if c_head[4].button("LOGOUT"):
 st.divider()
 
 # =============================================
-# 7. ASSET GRID (6 COLUMNAS ARCHITECTURE)
+# 7. ASSET GRID (6 COLUMNAS) - FIX FRAME VACÍO
 # =============================================
 cols = st.columns(6)
 
@@ -394,7 +373,7 @@ for i, (_, asset) in enumerate(user_assets.iterrows()):
                     img_to_show = base_dir + f
                     break
 
-        # Renderizado de Card
+        # Renderizado de Tarjeta para evitar frames fantasmas
         st.markdown('<div class="asset-card">', unsafe_allow_html=True)
         
         if img_to_show:
@@ -429,15 +408,22 @@ for i, (_, asset) in enumerate(user_assets.iterrows()):
         st.markdown('</div>', unsafe_allow_html=True)
 
 # =============================================
-# 8. TRANSACTION TERMINAL (SIDEBAR)
+# 8. TRANSACTION TERMINAL (SIDEBAR) - VERSIÓN FINAL REPARADA
 # =============================================
 if 'op' in st.session_state:
     mode, data = st.session_state['op']
     with st.sidebar:
+        # BOTÓN CERRAR SUPERIOR DERECHO
+        st.markdown('<div class="close-container">', unsafe_allow_html=True)
+        if st.button("✕", key="close_terminal_top"):
+            del st.session_state['op']
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
         st.markdown(f"### ⚡ TERMINAL: {mode}")
         st.divider()
 
-        # Información básica del activo (Persistent)
+        # Información básica del activo
         st.markdown(
             f"<div class='terminal-box'>"
             f"<span class='terminal-label'>ASSET</span><br>"
@@ -450,16 +436,14 @@ if 'op' in st.session_state:
             unsafe_allow_html=True
         )
 
-        # -------------------- MODO: TITLE --------------------
+        # ==================== TITLE (PDF FUNCIONAL) ====================
         if mode == 'TITLE':
             a_hash = generate_asset_hash(data['Asset_ID'], user)
             st.markdown(
                 f"<div class='terminal-box'>"
                 f"<span class='terminal-label'>SOVEREIGN OWNER</span><br>"
                 f"<span class='terminal-value'>{user}</span><br><br>"
-                f"<span class='terminal-label'>TIER STATUS</span><br>"
-                f"<span class='terminal-value' style='color:#d4af37;'>{tier_data['Label']}</span><br><br>"
-                f"<span class='terminal-label'>VERIFICATION HASH · SHA-256</span><br>"
+                f"<span class='terminal-label'>VERIFICATION HASH</span><br>"
                 f"<span style='color:#d4af37; font-family:monospace; font-size:8px; word-break:break-all;'>{a_hash}</span><br><br>"
                 f"<span class='terminal-label'>LEDGER STATUS</span><br>"
                 f"<span style='color:#39d353; font-weight:bold;'>● SECURED · IMMUTABLE</span>"
@@ -467,19 +451,20 @@ if 'op' in st.session_state:
                 unsafe_allow_html=True
             )
 
-            pdf_data = create_pdf_certificate(
+            # Generación y descarga de PDF vinculada correctamente
+            pdf_bytes = create_pdf_certificate(
                 data['Asset'], data['Asset_ID'], user, data['Value'], a_hash
             )
             
             st.download_button(
-                "⬇ DOWNLOAD CERTIFICATE",
-                data=pdf_data,
+                label="⬇ DOWNLOAD SOVEREIGN TITLE",
+                data=pdf_bytes,
                 file_name=f"CERT_{data['Asset_ID']}.pdf",
                 mime="application/pdf",
                 use_container_width=True
             )
 
-        # -------------------- MODO: SPLIT --------------------
+        # ==================== SPLIT (MÁRGENES CORREGIDOS) ====================
         elif mode == 'SPLIT':
             asset_value = data['Value']
             u_split = st.number_input(
@@ -488,66 +473,55 @@ if 'op' in st.session_state:
                 max_value=10000, 
                 value=100
             )
+            
             fraction_value = asset_value / u_split if u_split > 0 else 0
 
             st.markdown(
                 f"<div class='terminal-box'>"
-                f"<span class='terminal-label'>TOTAL ASSET VALUE</span><br>"
-                f"<span class='terminal-value' style='color:#d4af37;'>{asset_value:,.2f} DPX</span><br><br>"
-                f"<span class='terminal-label'>FRACTIONS TO GENERATE</span><br>"
-                f"<span class='terminal-value'>{u_split:,} units</span><br><br>"
                 f"<span class='terminal-label'>VALUE PER INDIVIDUAL FRACTION</span><br>"
-                f"<span class='terminal-value' style='color:#d4af37; font-size:15px;'>{fraction_value:,.2f} DPX</span><br><br>"
-                f"<hr class='gold-divider'>"
-                f"<span style='color:#aaa; font-size:8px;'>Sovereign Re-Ledgering Protocol active.</span>"
+                f"<span class='terminal-value' style='color:#d4af37; font-size:15px;'>{fraction_value:,.2f} DPX</span><br>"
                 f"</div>",
                 unsafe_allow_html=True
             )
 
-            st.markdown("<div class='warn-box'>⚠ THIS OPERATION IS IRREVERSIBLE</div>", unsafe_allow_html=True)
+            st.markdown('<div style="margin-top: 25px;">', unsafe_allow_html=True)
             if st.button("⚡ EXECUTE RE-LEDGERING", use_container_width=True):
-                st.markdown("<div class='success-box'>✔ RE-LEDGERING INITIATED</div>", unsafe_allow_html=True)
+                st.success(f"✔ RE-LEDGERING INITIATED: {u_split:,} units generated.")
+            st.markdown('</div>', unsafe_allow_html=True)
 
-        # -------------------- MODO: LOAN --------------------
+        # ==================== LOAN ====================
         elif mode == 'LOAN':
             asset_value = data['Value']
-            ltv_pct = tier_data['LTV']
-            max_loan = asset_value * ltv_pct
-            interest = tier_data['Interest']
+            max_loan = asset_value * tier_data['LTV']
 
             st.markdown(
                 f"<div class='terminal-box'>"
-                f"<span class='terminal-label'>LOAN-TO-VALUE RATIO</span><br>"
-                f"<span class='terminal-value' style='color:#d4af37; font-size:18px;'>{ltv_pct*100:.0f}%</span><br><br>"
-                f"<span class='terminal-label'>MAXIMUM CREDIT AVAILABLE</span><br>"
+                f"<span class='terminal-label'>LOAN-TO-VALUE ({tier_data['LTV']*100:.0f}%)</span><br>"
                 f"<span class='terminal-value' style='color:#ffffff; font-size:16px;'>{max_loan:,.0f} DPX</span><br><br>"
-                f"<span class='terminal-label'>ANNUAL INTEREST RATE</span><br>"
-                f"<span class='terminal-value'>{interest*100:.2f}%</span>"
+                f"<span class='terminal-label'>ANNUAL INTEREST</span><br>"
+                f"<span class='terminal-value'>{tier_data['Interest']*100:.2f}%</span>"
                 f"</div>",
                 unsafe_allow_html=True
             )
 
             if st.button("⚡ EXECUTE INSTANT LOAN", use_container_width=True):
-                st.markdown("<div class='success-box'>✔ LIQUIDITY INJECTED</div>", unsafe_allow_html=True)
+                st.info("✔ LIQUIDITY INJECTED · ASSET LOCKED")
 
-        # -------------------- MODO: SELL --------------------
+        # ==================== SELL ====================
         elif mode == 'SELL':
-            list_price = st.number_input("Listing Price (DPX)", value=float(data['Value']))
+            list_price = st.number_input(
+                "Listing Price (DPX)", 
+                value=float(data['Value']), 
+                min_value=0.0
+            )
+
             st.markdown(
                 f"<div class='terminal-box'>"
-                f"<span class='terminal-label'>MARKETPLACE</span><br>"
-                f"<span class='terminal-value'>DELPHIA OPEN MARKET</span><br><br>"
-                f"<span class='terminal-label'>PRICE</span><br>"
-                f"<span class='terminal-value' style='color:#d4af37;'>{list_price:,.0f} DPX</span>"
+                f"<span class='terminal-label'>BROADCAST TARGET</span><br>"
+                f"<span class='terminal-value'>DELPHIA OPEN MARKET</span>"
                 f"</div>",
                 unsafe_allow_html=True
             )
 
-            if st.button("📡 BROADCAST LISTING", use_container_width=True):
-                st.markdown("<div class='success-box'>✔ ASSET LISTED</div>", unsafe_allow_html=True)
-
-        # Botón Universal de Cierre
-        st.divider()
-        if st.button("✕ CLOSE TERMINAL", type="secondary", use_container_width=True):
-            del st.session_state['op']
-            st.rerun()
+            if st.button("📡 CONFIRM LISTING", use_container_width=True):
+                st.success("✔ BROADCAST COMPLETED")
