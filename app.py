@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import hashlib
+import io
 from fpdf import FPDF
 
 # =============================================
@@ -22,21 +23,12 @@ def apply_theme():
         }
 
         /* ==============================================
-           GHOST BOX FIX — SOLUCIÓN DEFINITIVA
-           
-           El problema: st.markdown('<div class="card">') abre
-           un contenedor HTML, pero st.image / st.columns / st.button
-           se renderizan como hermanos en el DOM de Streamlit,
-           NO como hijos del div. Resultado: el div aparece vacío
-           encima, y los elementos aparecen en otro contenedor abajo.
-           
-           Solución: usamos st.container() nativo (que SÍ agrupa
-           los elementos como hijos reales) y lo estilizamos con
-           CSS apuntando a [data-testid="stVerticalBlockBorderWrapper"]
-           que es el contenedor que genera border=True en st.container.
+           GHOST BOX FIX — SOLUCIÓN DEFINITIVA (v14 ✓)
+           st.container(border=True) genera stVerticalBlockBorderWrapper
+           como contenedor nativo — una sola caja, sin fantasmas.
         =============================================== */
 
-        /* El container con border=True genera este wrapper */
+        /* FIX 3: GRID SIMÉTRICA — altura fija en cada card */
         [data-testid="stVerticalBlockBorderWrapper"] {
             background-color: #1c2128 !important;
             border: 1px solid #30363d !important;
@@ -44,6 +36,12 @@ def apply_theme():
             padding: 0 !important;
             overflow: hidden !important;
             margin-bottom: 10px !important;
+            /* ALTURA FIJA: todas las cards tienen exactamente 340px */
+            height: 340px !important;
+            min-height: 340px !important;
+            max-height: 340px !important;
+            display: flex !important;
+            flex-direction: column !important;
             transition: border-color 0.2s ease, background-color 0.2s ease;
         }
         [data-testid="stVerticalBlockBorderWrapper"]:hover {
@@ -51,22 +49,28 @@ def apply_theme():
             background-color: #21262d !important;
         }
 
-        /* El bloque vertical interno del container */
+        /* Bloque vertical interno */
         [data-testid="stVerticalBlockBorderWrapper"] > div > [data-testid="stVerticalBlock"] {
             padding: 0 !important;
             gap: 0 !important;
+            height: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
         }
 
-        /* Primer hijo del container = imagen, sin gaps ni padding */
+        /* Primer hijo = imagen, sin gaps ni padding */
         [data-testid="stVerticalBlockBorderWrapper"] > div > [data-testid="stVerticalBlock"] > div:first-child {
             margin: 0 !important;
             padding: 0 !important;
             line-height: 0 !important;
+            flex-shrink: 0 !important;
         }
         [data-testid="stVerticalBlockBorderWrapper"] > div > [data-testid="stVerticalBlock"] > div:first-child .element-container {
             margin: 0 !important;
             padding: 0 !important;
         }
+
+        /* Imagen: siempre 170px, object-fit cover para cortar sin deformar */
         [data-testid="stVerticalBlockBorderWrapper"] [data-testid="stImage"] {
             margin: 0 !important;
             padding: 0 !important;
@@ -75,31 +79,32 @@ def apply_theme():
         }
         [data-testid="stVerticalBlockBorderWrapper"] [data-testid="stImage"] img {
             width: 100% !important;
-            height: 175px !important;
+            height: 170px !important;
             object-fit: cover !important;
+            object-position: center top !important;
             border-radius: 0 !important;
             display: block !important;
             margin: 0 !important;
             padding: 0 !important;
         }
 
-        /* Contenido de la card (título, precio, botones) */
+        /* Contenido interno (título, precio, botones) con padding lateral */
         [data-testid="stVerticalBlockBorderWrapper"] .element-container {
             padding-left: 6px !important;
             padding-right: 6px !important;
         }
 
-        /* Imagen fallback (ícono sin imagen) */
+        /* Imagen fallback (ícono sin imagen) — misma altura que st.image */
         .img-container {
             width: 100%;
-            height: 175px;
+            height: 170px;
             background-color: #111;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0;
             padding: 0;
-            line-height: 0;
+            flex-shrink: 0;
         }
 
         /* Título del activo */
@@ -107,9 +112,9 @@ def apply_theme():
             font-size: 8px !important;
             font-weight: bold;
             color: #ffffff !important;
-            margin: 6px 0 2px 0 !important;
+            margin: 5px 0 2px 0 !important;
             line-height: 1.2;
-            height: 26px;
+            height: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -119,6 +124,8 @@ def apply_theme():
             letter-spacing: 1px;
             text-align: center;
         }
+
+        /* Precio del activo */
         .asset-price {
             color: #d4af37;
             font-weight: bold;
@@ -149,7 +156,7 @@ def apply_theme():
             background-color: #d4af3722;
         }
 
-        /* FIX MÉTRICAS: Labels blancos, Values dorados Cinzel */
+        /* MÉTRICAS: Labels blancos, Values dorados Cinzel */
         [data-testid="stMetricLabel"] p,
         [data-testid="stMetricLabel"] {
             color: #ffffff !important;
@@ -237,7 +244,7 @@ def apply_theme():
 
 
 st.set_page_config(
-    page_title="DELPHIA SOVEREIGN NEXUS | APEX SYSTEM_v14.0",
+    page_title="DELPHIA SOVEREIGN NEXUS | APEX SYSTEM_v15.0",
     page_icon="🏛️",
     layout="wide"
 )
@@ -253,10 +260,19 @@ def generate_asset_hash(asset_id, sovereign):
 
 
 def create_pdf_certificate(asset_name, asset_id, sovereign, value, a_hash):
+    """
+    Genera el PDF del certificado soberano y lo devuelve como bytes.
+    Usa io.BytesIO internamente para garantizar compatibilidad con
+    todas las versiones de fpdf2 y con st.download_button.
+    """
     pdf = FPDF()
     pdf.add_page()
+
+    # Fondo oscuro
     pdf.set_fill_color(5, 5, 10)
     pdf.rect(0, 0, 210, 297, 'F')
+
+    # Bordes dorados
     pdf.set_draw_color(212, 175, 55)
     pdf.set_line_width(1.2)
     pdf.rect(8, 8, 194, 281)
@@ -266,12 +282,14 @@ def create_pdf_certificate(asset_name, asset_id, sovereign, value, a_hash):
     pdf.rect(12, 12, 186, 0.5, 'F')
     pdf.rect(12, 285, 186, 0.5, 'F')
 
+    # Encabezado protocolo
     pdf.set_text_color(212, 175, 55)
     pdf.set_font("Courier", "B", 7)
     pdf.set_xy(12, 18)
     pdf.cell(186, 4, "K A R D A S H E V V I | C I V I L I Z A T I O N A S S E T P R O T O C O L", 0, 1, "C")
     pdf.line(20, 26, 190, 26)
 
+    # Título principal
     pdf.set_xy(12, 30)
     pdf.set_font("Courier", "B", 20)
     pdf.set_text_color(212, 175, 55)
@@ -282,18 +300,20 @@ def create_pdf_certificate(asset_name, asset_id, sovereign, value, a_hash):
     pdf.cell(186, 6, "S O V E R E I G N O W N E R S H I P C E R T I F I C A T E", 0, 1, "C")
     pdf.line(20, 52, 190, 52)
 
+    # Símbolo central
     pdf.set_xy(85, 56)
     pdf.set_font("Courier", "B", 28)
     pdf.set_text_color(212, 175, 55)
     pdf.cell(40, 14, "◈", 0, 1, "C")
 
+    # Campos del certificado
     fields = [
-        ("ASSET DESIGNATION", str(asset_name).upper()),
-        ("REGISTRY CODE", str(asset_id).upper()),
-        ("SOVEREIGN CUSTODIAN", str(sovereign).upper()),
-        ("APPRAISED VALUATION", f"{float(value):,.0f} DPX"),
-        ("LEDGER EPOCH", "2026 · TRUTH LEDGER v7"),
-        ("CLASSIFICATION", "TIER I — IMMUTABLE ASSET"),
+        ("ASSET DESIGNATION",  str(asset_name).upper()),
+        ("REGISTRY CODE",      str(asset_id).upper()),
+        ("SOVEREIGN CUSTODIAN",str(sovereign).upper()),
+        ("APPRAISED VALUATION",f"{float(value):,.0f} DPX"),
+        ("LEDGER EPOCH",       "2026 · TRUTH LEDGER v7"),
+        ("CLASSIFICATION",     "TIER I — IMMUTABLE ASSET"),
     ]
     y_start = 76
     for label, val in fields:
@@ -310,6 +330,7 @@ def create_pdf_certificate(asset_name, asset_id, sovereign, value, a_hash):
         pdf.line(25, y_start + 11, 185, y_start + 11)
         y_start += 15
 
+    # Caja hash
     pdf.set_fill_color(15, 12, 5)
     pdf.rect(18, y_start + 4, 174, 22, 'F')
     pdf.set_draw_color(212, 175, 55)
@@ -324,6 +345,7 @@ def create_pdf_certificate(asset_name, asset_id, sovereign, value, a_hash):
     pdf.set_text_color(212, 175, 55)
     pdf.cell(174, 8, a_hash, 0, 1, "C")
 
+    # Pie de página
     pdf.line(20, y_start + 32, 190, y_start + 32)
     pdf.set_xy(12, y_start + 34)
     pdf.set_font("Courier", "I", 6)
@@ -332,6 +354,7 @@ def create_pdf_certificate(asset_name, asset_id, sovereign, value, a_hash):
     pdf.set_xy(12, y_start + 38)
     pdf.cell(186, 4, "Unauthorized duplication voids sovereign claim · KARDASHEV VI PROTOCOL ACTIVE", 0, 1, "C")
 
+    # Serial
     serial = f"DPX-{a_hash[:8]}"
     pdf.set_font("Courier", "", 5)
     pdf.set_text_color(60, 55, 30)
@@ -340,7 +363,14 @@ def create_pdf_certificate(asset_name, asset_id, sovereign, value, a_hash):
     pdf.set_xy(156, 278)
     pdf.cell(40, 4, serial, 0, 0, "R")
 
-    return bytes(pdf.output())
+    # ── Exportar a bytes de forma robusta ──
+    # pdf.output() en fpdf2 >= 2.x devuelve bytearray.
+    # Lo volcamos en un BytesIO y extraemos bytes puros,
+    # que es lo que st.download_button acepta sin excepción.
+    buffer = io.BytesIO()
+    buffer.write(pdf.output())
+    buffer.seek(0)
+    return buffer.read()
 
 
 # =============================================
@@ -411,12 +441,8 @@ st.divider()
 
 # =============================================
 # 7. ASSET GRID (6 COLUMNAS)
-# 
-# FIX DEFINITIVO GHOST BOXES:
-# Se usa st.container(border=True) en lugar de st.markdown('<div>').
-# Esto garantiza que st.image, st.markdown y st.columns sean hijos
-# REALES del mismo contenedor Streamlit — sin cajas fantasma.
-# El CSS estiliza [data-testid="stVerticalBlockBorderWrapper"].
+# st.container(border=True) — una sola caja nativa, sin ghost boxes.
+# CSS fija la altura a 340px para que todas las cards sean simétricas.
 # =============================================
 cols = st.columns(6)
 
@@ -433,10 +459,8 @@ for i, (_, asset) in enumerate(user_assets.iterrows()):
                     img_to_show = base_dir + f
                     break
 
-        # st.container(border=True) agrupa todos los elementos como
-        # hijos nativos — una sola caja, sin fantasmas.
         with st.container(border=True):
-            # Imagen — primer elemento, sin separación
+            # Imagen — primer elemento, pegado al borde superior
             if img_to_show:
                 st.image(img_to_show, use_container_width=True)
             else:
@@ -470,18 +494,20 @@ for i, (_, asset) in enumerate(user_assets.iterrows()):
 
 # =============================================
 # 8. TRANSACTION TERMINAL (SIDEBAR)
+# — X superior cierra en todos los modos
+# — SPLIT / LOAN / SELL: sin botón close inferior (eliminado)
+# — TITLE: PDF generado una sola vez en caché, download_button robusto
 # =============================================
 if 'op' in st.session_state:
     mode, data = st.session_state['op']
 
     with st.sidebar:
-        # Botón X superior
+        # ── Botón X superior ──────────────────────────────
         col_title, col_x = st.columns([4, 1])
         with col_title:
             st.markdown(f"### ⚡ TERMINAL: {mode}")
         with col_x:
             if st.button("✕", key="close_top", help="Cerrar terminal"):
-                # Limpiar caché PDF si existe
                 pk = f"pdf_cache_{data['Asset_ID']}"
                 if pk in st.session_state:
                     del st.session_state[pk]
@@ -505,21 +531,22 @@ if 'op' in st.session_state:
 
         # ==================== TITLE ====================
         if mode == 'TITLE':
-            # FIX PDF ROBUSTO:
-            # El PDF se genera UNA sola vez y se guarda en session_state.
-            # st.download_button sirve el bytes ya generado sin re-ejecutar
-            # create_pdf_certificate en cada render, lo que antes causaba
-            # que el botón desapareciera o no se mostrara.
+            # PDF generado UNA SOLA VEZ y almacenado en session_state.
+            # Los re-renders leen del caché: el botón persiste y la descarga funciona.
             cache_key = f"pdf_cache_{data['Asset_ID']}"
             if cache_key not in st.session_state:
                 a_hash = generate_asset_hash(data['Asset_ID'], user)
-                pdf_bytes = create_pdf_certificate(
-                    data['Asset'], data['Asset_ID'], user, data['Value'], a_hash
-                )
-                st.session_state[cache_key] = {"hash": a_hash, "pdf": pdf_bytes}
+                try:
+                    pdf_bytes = create_pdf_certificate(
+                        data['Asset'], data['Asset_ID'], user, data['Value'], a_hash
+                    )
+                    st.session_state[cache_key] = {"hash": a_hash, "pdf": pdf_bytes}
+                except Exception as e:
+                    st.error(f"PDF generation error: {e}")
+                    st.session_state[cache_key] = {"hash": a_hash, "pdf": None}
 
-            cached = st.session_state[cache_key]
-            a_hash   = cached["hash"]
+            cached    = st.session_state[cache_key]
+            a_hash    = cached["hash"]
             pdf_bytes = cached["pdf"]
 
             st.markdown(
@@ -537,18 +564,20 @@ if 'op' in st.session_state:
                 unsafe_allow_html=True
             )
 
-            # download_button recibe bytes directamente desde caché —
-            # no re-genera el PDF y no provoca re-render que lo elimine.
+            # Botón de descarga — siempre visible si el PDF está en caché
             col_dl, col_close = st.columns(2)
             with col_dl:
-                st.download_button(
-                    label="⬇ DOWNLOAD CERT",
-                    data=pdf_bytes,
-                    file_name=f"CERT_{data['Asset_ID']}.pdf",
-                    mime="application/pdf",
-                    use_container_width=True,
-                    key=f"dl_{data['Asset_ID']}"
-                )
+                if pdf_bytes is not None:
+                    st.download_button(
+                        label="⬇ DOWNLOAD CERT",
+                        data=pdf_bytes,
+                        file_name=f"CERT_{data['Asset_ID']}.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                        key=f"dl_{data['Asset_ID']}"
+                    )
+                else:
+                    st.warning("PDF unavailable")
             with col_close:
                 if st.button("✕ CLOSE", key="close_title_bottom",
                              type="secondary", use_container_width=True):
@@ -558,6 +587,7 @@ if 'op' in st.session_state:
                     st.rerun()
 
         # ==================== SPLIT ====================
+        # Sin botón close inferior — la X superior es el único cierre.
         elif mode == 'SPLIT':
             asset_value = data['Value']
             u_split = st.number_input(
@@ -600,13 +630,8 @@ if 'op' in st.session_state:
                     unsafe_allow_html=True
                 )
 
-            st.divider()
-            if st.button("✕ CLOSE TERMINAL", key="close_split_bottom",
-                         type="secondary", use_container_width=True):
-                del st.session_state['op']
-                st.rerun()
-
         # ==================== LOAN ====================
+        # Sin botón close inferior — la X superior es el único cierre.
         elif mode == 'LOAN':
             asset_value = data['Value']
             ltv_pct    = tier_data['LTV']
@@ -641,13 +666,8 @@ if 'op' in st.session_state:
                     unsafe_allow_html=True
                 )
 
-            st.divider()
-            if st.button("✕ CLOSE TERMINAL", key="close_loan_bottom",
-                         type="secondary", use_container_width=True):
-                del st.session_state['op']
-                st.rerun()
-
         # ==================== SELL ====================
+        # Sin botón close inferior — la X superior es el único cierre.
         elif mode == 'SELL':
             list_price = st.number_input(
                 "Listing Price (DPX)",
@@ -676,9 +696,3 @@ if 'op' in st.session_state:
                     "Broadcast to Open Market completed. Visible to sovereign buyers.</div>",
                     unsafe_allow_html=True
                 )
-
-            st.divider()
-            if st.button("✕ CLOSE TERMINAL", key="close_sell_bottom",
-                         type="secondary", use_container_width=True):
-                del st.session_state['op']
-                st.rerun()
